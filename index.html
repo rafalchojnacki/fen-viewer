@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FEN Viewer</title>
+  </head>
+  <body>
+    <main>
+      <div class="board-area">
+        <div class="board-frame">
+          <div class="coords-files" id="coords-files-top"></div>
+          <div class="coords-ranks" id="coords-ranks-left"></div>
+          <div id="board"></div>
+          <div class="coords-ranks" id="coords-ranks-right"></div>
+          <div class="move-indicator turn-black" id="move-indicator" title="Side to move"></div>
+          <div class="coords-files" id="coords-files-bottom"></div>
+        </div>
+        <div class="fen-panel">
+          <input id="fen-input" type="text" spellcheck="false" autocomplete="off" placeholder="Paste a FEN string..." />
+          <p id="fen-error" class="invalid-hint" hidden>Invalid FEN</p>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

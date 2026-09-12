@@ -1,0 +1,167 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #1c1c1e;
+  color: #eee;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: grid;
+  place-items: center;
+}
+
+main {
+  --board-size: min(72vmin, 540px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+}
+
+.fen-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+#fen-input {
+  width: var(--board-size);
+  max-width: 100%;
+  padding: 10px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  color: #eee;
+  background: #2a2a2d;
+  border: 1px solid #3a3a3f;
+  border-radius: 8px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+#fen-input:focus {
+  border-color: #97b2c7;
+  box-shadow: 0 0 0 3px rgba(151, 178, 199, 0.25);
+}
+
+#fen-input.invalid {
+  border-color: #e05656;
+  box-shadow: 0 0 0 3px rgba(224, 86, 86, 0.25);
+}
+
+.invalid-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #e05656;
+}
+
+.board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.board-frame {
+  grid-row: 1;
+  grid-column: 1;
+  display: grid;
+  grid-template-columns: 1.4rem var(--board-size) 1.4rem;
+  grid-template-rows: 1.4rem var(--board-size) 1.4rem;
+  gap: 8px;
+  padding: 14px;
+  background: #333338;
+  border: 1px solid #4a4a50;
+  border-radius: 14px;
+}
+
+.coords-ranks {
+  display: flex;
+  flex-direction: column;
+}
+
+.coords-ranks#coords-ranks-left {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.coords-ranks#coords-ranks-right {
+  grid-row: 2;
+  grid-column: 3;
+}
+
+.coords-ranks span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(10px, 1.4vmin, 13px);
+  font-weight: 600;
+  color: #b9c0c7;
+}
+
+.coords-files {
+  display: flex;
+}
+
+.coords-files#coords-files-top {
+  grid-row: 1;
+  grid-column: 2;
+}
+
+.coords-files#coords-files-bottom {
+  grid-row: 3;
+  grid-column: 2;
+}
+
+.coords-files span {
+  flex: 1;
+  text-align: center;
+  font-size: clamp(10px, 1.4vmin, 13px);
+  font-weight: 600;
+  line-height: 1.4rem;
+  color: #b9c0c7;
+}
+
+.move-indicator {
+  grid-row: 3;
+  grid-column: 3;
+  align-self: center;
+  justify-self: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  transition: background-color 0.15s ease;
+}
+
+.move-indicator.turn-white {
+  background-color: #f2f2f2;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.move-indicator.turn-black {
+  background-color: #0e0e0e;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+#board {
+  grid-row: 2;
+  grid-column: 2;
+  width: 100%;
+  height: 100%;
+}
+
+#board cg-wrap {
+  width: 100%;
+  height: 100%;
+}
