@@ -18,6 +18,11 @@ body {
 
 main {
   --board-size: min(72vmin, 540px);
+  --frame-pad: 14px;
+  --frame-gap: 8px;
+  --frame-coord: 1.4rem;
+  --frame-extra: calc(2 * var(--frame-pad) + 2 * var(--frame-gap) + 2 * var(--frame-coord));
+  --frame-size: calc(var(--board-size) + var(--frame-extra));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -30,12 +35,19 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  width: var(--frame-size);
+  max-width: 100%;
+}
+
+.fen-row {
+  display: flex;
+  gap: 8px;
   width: 100%;
 }
 
 #fen-input {
-  width: var(--board-size);
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 10px 14px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 14px;
@@ -65,6 +77,37 @@ main {
   color: #e05656;
 }
 
+#lichess-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: #e8e8ea;
+  background: #2a2a2d;
+  border: 1px solid #3a3a3f;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+#lichess-btn svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+#lichess-btn:hover:not(:disabled) {
+  background-color: #333338;
+}
+
+#lichess-btn:disabled {
+  color: #8a8a90;
+  background: #232326;
+  border-color: #2e2e32;
+  cursor: not-allowed;
+}
+
 .board-area {
   display: flex;
   flex-direction: column;
@@ -76,12 +119,11 @@ main {
   grid-row: 1;
   grid-column: 1;
   display: grid;
-  grid-template-columns: 1.4rem var(--board-size) 1.4rem;
-  grid-template-rows: 1.4rem var(--board-size) 1.4rem;
-  gap: 8px;
-  padding: 14px;
-  background: #333338;
-  border: 1px solid #4a4a50;
+  grid-template-columns: var(--frame-coord) var(--board-size) var(--frame-coord);
+  grid-template-rows: var(--frame-coord) var(--board-size) var(--frame-coord);
+  gap: var(--frame-gap);
+  padding: var(--frame-pad);
+  background: #2a2a2a;
   border-radius: 14px;
 }
 
@@ -129,7 +171,7 @@ main {
   text-align: center;
   font-size: clamp(10px, 1.4vmin, 13px);
   font-weight: 600;
-  line-height: 1.4rem;
+  line-height: var(--frame-coord);
   color: #b9c0c7;
 }
 

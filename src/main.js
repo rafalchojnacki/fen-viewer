@@ -7,6 +7,7 @@ const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 const fenInput = document.getElementById('fen-input');
 const fenError = document.getElementById('fen-error');
+const lichessBtn = document.getElementById('lichess-btn');
 const boardEl = document.getElementById('board');
 const moveIndicator = document.getElementById('move-indicator');
 const coordsFilesTop = document.getElementById('coords-files-top');
@@ -91,11 +92,13 @@ function applyFen(fen) {
   if (isValidFen(trimmed)) {
     fenInput.classList.remove('invalid');
     fenError.hidden = true;
+    lichessBtn.disabled = false;
     currentFen = trimmed;
     refresh();
   } else {
     fenInput.classList.add('invalid');
     fenError.hidden = false;
+    lichessBtn.disabled = true;
   }
 }
 
@@ -120,4 +123,10 @@ let debounceTimer;
 fenInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => applyFen(fenInput.value), 300);
+});
+
+lichessBtn.addEventListener('click', () => {
+  if (lichessBtn.disabled) return;
+  const parts = currentFen.trim().split(/\s+/).slice(0, 4).join(' ');
+  window.open(`https://lichess.org/analysis/${parts.replace(/ /g, '_')}`, '_blank');
 });
