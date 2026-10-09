@@ -196,6 +196,93 @@ main {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
+.timer-widget {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 8px;
+}
+
+.timer-widget button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  font-size: 13px;
+  color: #e8e8ea;
+  background: #2a2a2d;
+  border: 1px solid #3a3a3f;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.timer-widget button:hover {
+  background-color: #333338;
+}
+
+#timer-toggle {
+  position: relative;
+}
+
+#timer-toggle svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+#timer-toggle.running::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7bd88a;
+}
+
+#timer-toggle[aria-pressed="true"] {
+  color: #1c1c1e;
+  background: #97b2c7;
+  border-color: #97b2c7;
+}
+
+#timer-toggle[aria-pressed="true"]:hover {
+  background: #a8c0d2;
+}
+
+.timer-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #2a2a2d;
+  border: 1px solid #3a3a3f;
+  border-radius: 8px;
+}
+
+.timer-panel[hidden] {
+  display: none;
+}
+
+.timer-display {
+  min-width: 4.5em;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  color: #eee;
+}
+
+.timer-panel button {
+  padding: 6px 12px;
+}
+
 #board {
   grid-row: 2;
   grid-column: 2;

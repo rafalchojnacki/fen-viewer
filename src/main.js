@@ -130,3 +130,63 @@ lichessBtn.addEventListener('click', () => {
   const parts = currentFen.trim().split(/\s+/).slice(0, 4).join(' ');
   window.open(`https://lichess.org/analysis/${parts.replace(/ /g, '_')}`, '_blank');
 });
+
+const timerToggle = document.getElementById('timer-toggle');
+const timerPanel = document.getElementById('timer-panel');
+const timerDisplay = document.getElementById('timer-display');
+const timerStartPause = document.getElementById('timer-startpause');
+const timerReset = document.getElementById('timer-reset');
+
+let timerSeconds = 0;
+let timerRunning = false;
+let timerId = null;
+
+const formatTime = (total) => {
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+function renderTimer() {
+  timerDisplay.textContent = formatTime(timerSeconds);
+  timerStartPause.textContent = timerRunning ? 'Pause' : 'Start';
+  timerToggle.classList.toggle('running', timerRunning);
+}
+
+function stopTimer() {
+  clearInterval(timerId);
+  timerId = null;
+  timerRunning = false;
+}
+
+function resetTimer() {
+  stopTimer();
+  timerSeconds = 0;
+  renderTimer();
+}
+
+timerStartPause.addEventListener('click', () => {
+  if (timerRunning) {
+    stopTimer();
+    renderTimer();
+  } else {
+    timerRunning = true;
+    timerId = setInterval(() => {
+      timerSeconds += 1;
+      renderTimer();
+    }, 1000);
+    renderTimer();
+  }
+});
+
+timerReset.addEventListener('click', resetTimer);
+
+timerToggle.addEventListener('click', () => {
+  const willShow = timerPanel.hidden;
+  timerPanel.hidden = !willShow;
+  timerToggle.setAttribute('aria-pressed', String(willShow));
+  timerToggle.title = willShow ? 'Hide timer' : 'Show timer';
+  if (!willShow && !timerRunning) resetTimer();
+});
+
+renderTimer();
