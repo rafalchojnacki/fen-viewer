@@ -19,6 +19,7 @@ const moveList = document.getElementById('move-list');
 const navFirst = document.getElementById('nav-first');
 const navPrev = document.getElementById('nav-prev');
 const navNext = document.getElementById('nav-next');
+const navLast = document.getElementById('nav-last');
 const promotionOverlay = document.getElementById('promotion');
 const promotionMenu = document.getElementById('promotion-menu');
 
@@ -34,6 +35,9 @@ let timeline = [{ fen: START_FEN, san: null, from: null, to: null, moveNumber: 1
 let cursor = 0;
 let pendingPromotion = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
+let showPanel = localStorage.getItem('fen-viewer.showPanel') !== 'false';
+let currentPieces = localStorage.getItem('fen-viewer.pieces') || 'staunty';
+const STATE_KEY = 'fen-viewer.state';
 
 const turnColor = (fen) => (fen.trim().split(/\s+/)[1] === 'w' ? 'white' : 'black');
 const orientation = () => (flipped ? 'black' : 'white');
@@ -173,6 +177,18 @@ function renderNav() {
   navFirst.disabled = cursor === 0;
   navPrev.disabled = cursor === 0;
   navNext.disabled = cursor >= timeline.length - 1;
+  navLast.disabled = cursor >= timeline.length - 1;
+}
+
+function saveState() {
+  try {
+    sessionStorage.setItem(
+      STATE_KEY,
+      JSON.stringify({ currentFen, timeline, cursor, flipped }),
+    );
+  } catch {
+    /* ignore storage errors */
+  }
 }
 
 function refresh() {
@@ -197,6 +213,7 @@ function refresh() {
   fenInput.value = currentFen;
   renderMoves();
   renderNav();
+  saveState();
 }
 
 function goto(index) {
@@ -258,7 +275,7 @@ function openPromotion(orig, dest, color) {
       btn.title = PROMOTION_NAMES[piece];
       btn.setAttribute('aria-label', PROMOTION_NAMES[piece]);
       const img = document.createElement('img');
-      img.src = `/piece/staunty/${color}${piece.toUpperCase()}.svg`;
+      img.src = `/piece/${currentPieces}/${color}${piece.toUpperCase()}.svg`;
       img.alt = PROMOTION_NAMES[piece];
       btn.appendChild(img);
       btn.addEventListener('click', () => completePromotion(piece));
@@ -300,6 +317,7 @@ function applyFen(fen) {
     const color = parts[1];
     currentFen = trimmed;
     game = parsed;
+    flipped = color === 'b';
     timeline = [
       { fen: trimmed, san: null, from: null, to: null, moveNumber, color },
     ];
@@ -315,6 +333,7 @@ function applyFen(fen) {
 navFirst.addEventListener('click', () => goto(0));
 navPrev.addEventListener('click', () => goto(cursor - 1));
 navNext.addEventListener('click', () => goto(cursor + 1));
+navLast.addEventListener('click', () => goto(timeline.length - 1));
 
 promotionOverlay.addEventListener('click', (event) => {
   if (event.target === promotionOverlay) {
@@ -335,9 +354,87 @@ document.addEventListener('keydown', (event) => {
   }
   if (event.target === fenInput) return;
   if (pendingPromotion) return;
+
+  if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.key.toLowerCase() === 't') {
+    event.preventDefault();
+    pendingTimerChord = true;
+    if (pendingTimerChordTimeout) {
+      clearTimeout(pendingTimerChordTimeout);
+    }
+    pendingTimerChordTimeout = setTimeout(() => {
+      pendingTimerChord = false;
+      pendingTimerChordTimeout = null;
+    }, 800);
+    return;
+  }
+
+  if (pendingTimerChord && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    const k = event.key.toLowerCase();
+    if (k === 'r') {
+      event.preventDefault();
+      pendingTimerChord = false;
+      if (pendingTimerChordTimeout) {
+        clearTimeout(pendingTimerChordTimeout);
+        pendingTimerChordTimeout = null;
+      }
+      resetTimer();
+      return;
+    }
+    if (k === 's') {
+      event.preventDefault();
+      pendingTimerChord = false;
+      if (pendingTimerChordTimeout) {
+        clearTimeout(pendingTimerChordTimeout);
+        pendingTimerChordTimeout = null;
+      }
+      startTimer();
+      return;
+    }
+    if (k === 'p') {
+      event.preventDefault();
+      pendingTimerChord = false;
+      if (pendingTimerChordTimeout) {
+        clearTimeout(pendingTimerChordTimeout);
+        pendingTimerChordTimeout = null;
+      }
+      pauseTimer();
+      return;
+    }
+    if (k === 't') {
+      event.preventDefault();
+      pendingTimerChord = false;
+      if (pendingTimerChordTimeout) {
+        clearTimeout(pendingTimerChordTimeout);
+        pendingTimerChordTimeout = null;
+      }
+      toggleTimerPanel();
+      return;
+    }
+    pendingTimerChord = false;
+    if (pendingTimerChordTimeout) {
+      clearTimeout(pendingTimerChordTimeout);
+      pendingTimerChordTimeout = null;
+    }
+  }
+
   if (event.key.toLowerCase() === 'f') {
     flipped = !flipped;
     refresh();
+    return;
+  }
+  if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 's') {
+    event.preventDefault();
+    setShowPanel(!showPanel);
+    return;
+  }
+  if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      goto(cursor - 1);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      goto(cursor + 1);
+    }
   }
 });
 
@@ -362,6 +459,8 @@ const timerReset = document.getElementById('timer-reset');
 let timerSeconds = 0;
 let timerRunning = false;
 let timerId = null;
+let pendingTimerChord = false;
+let pendingTimerChordTimeout = null;
 
 const formatTime = (total) => {
   const minutes = Math.floor(total / 60);
@@ -370,51 +469,82 @@ const formatTime = (total) => {
 };
 
 function renderTimer() {
-  timerDisplay.textContent = formatTime(timerSeconds);
-  timerStartPause.textContent = timerRunning ? 'Pause' : 'Start';
-  timerToggle.classList.toggle('running', timerRunning);
+  if (timerDisplay) {
+    timerDisplay.textContent = formatTime(timerSeconds);
+  }
+  if (timerStartPause) {
+    timerStartPause.textContent = timerRunning ? 'Pause' : 'Start';
+  }
+  if (timerToggle) {
+    timerToggle.classList.toggle('running', timerRunning);
+  }
 }
 
 function stopTimer() {
-  clearInterval(timerId);
+  if (timerId) {
+    clearInterval(timerId);
+  }
   timerId = null;
   timerRunning = false;
 }
 
 function resetTimer() {
-  stopTimer();
   timerSeconds = 0;
   renderTimer();
 }
 
-timerStartPause.addEventListener('click', () => {
-  if (timerRunning) {
-    stopTimer();
-    renderTimer();
-  } else {
-    timerRunning = true;
-    timerId = setInterval(() => {
-      timerSeconds += 1;
-      renderTimer();
-    }, 1000);
-    renderTimer();
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  if (timerId) {
+    clearInterval(timerId);
   }
-});
+  timerId = setInterval(() => {
+    timerSeconds += 1;
+    renderTimer();
+  }, 1000);
+  renderTimer();
+}
 
-timerReset.addEventListener('click', resetTimer);
+function pauseTimer() {
+  if (!timerRunning) return;
+  stopTimer();
+  renderTimer();
+}
 
-timerToggle.addEventListener('click', () => {
+function toggleTimerPanel() {
+  if (!timerPanel || !timerToggle) return;
   const willShow = timerPanel.hidden;
   timerPanel.hidden = !willShow;
   timerToggle.setAttribute('aria-pressed', String(willShow));
   timerToggle.title = willShow ? 'Hide timer' : 'Show timer';
   if (!willShow && !timerRunning) resetTimer();
-});
+}
+
+if (timerStartPause) {
+  timerStartPause.addEventListener('click', () => {
+    if (timerRunning) {
+      pauseTimer();
+    } else {
+      startTimer();
+    }
+  });
+}
+
+if (timerReset) {
+  timerReset.addEventListener('click', resetTimer);
+}
+
+if (timerToggle) {
+  timerToggle.addEventListener('click', toggleTimerPanel);
+}
 
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsMenu = document.getElementById('settings-menu');
 const showDestsInput = document.getElementById('setting-show-dests');
-const themeButtons = document.querySelectorAll('.settings-theme-btn');
+const showPanelInput = document.getElementById('setting-show-panel');
+const sidePanelEl = document.querySelector('.side-panel');
+const themeButtons = document.querySelectorAll('.settings-theme-btn[data-theme-value]');
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -424,13 +554,39 @@ function applyTheme(theme) {
   });
 }
 
-let savedTheme = localStorage.getItem('fen-viewer.theme') || 'modern';
-if (savedTheme === 'dark' || savedTheme === 'blue' || savedTheme === 'paper') savedTheme = 'modern';
-if (savedTheme === 'wood') savedTheme = 'classic';
+let savedTheme = localStorage.getItem('fen-viewer.theme') || 'walnut';
+if (savedTheme === 'blue' || savedTheme === 'modern') savedTheme = 'navy';
+if (savedTheme === 'classic' || savedTheme === 'brown' || savedTheme === 'wood') savedTheme = 'walnut';
+if (savedTheme === 'gray' || savedTheme === 'mono') savedTheme = 'graphite';
+if (savedTheme === 'light') savedTheme = 'birch';
+if (savedTheme !== 'walnut' && savedTheme !== 'navy' && savedTheme !== 'graphite' && savedTheme !== 'birch' && savedTheme !== 'paper') savedTheme = 'walnut';
 applyTheme(savedTheme);
 
 themeButtons.forEach((btn) => {
   btn.addEventListener('click', () => applyTheme(btn.dataset.themeValue));
+});
+
+const pieceButtons = document.querySelectorAll('.settings-piece-btn');
+const PIECE_ABBREVS = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
+const VALID_PIECES = ['staunty', 'maestro'];
+
+function applyPieces(set) {
+  if (!VALID_PIECES.includes(set)) set = 'staunty';
+  currentPieces = set;
+  document.documentElement.dataset.pieces = set;
+  for (const abbrev of PIECE_ABBREVS) {
+    document.documentElement.style.setProperty(`--piece-${abbrev}`, `url('/piece/${set}/${abbrev}.svg')`);
+  }
+  localStorage.setItem('fen-viewer.pieces', set);
+  pieceButtons.forEach((btn) => {
+    btn.setAttribute('aria-pressed', String(btn.dataset.pieceValue === set));
+  });
+}
+
+applyPieces(currentPieces);
+
+pieceButtons.forEach((btn) => {
+  btn.addEventListener('click', () => applyPieces(btn.dataset.pieceValue));
 });
 
 function closeSettings() {
@@ -454,12 +610,25 @@ settingsToggle.addEventListener('click', () => {
 showDestsInput.checked = showDests;
 showDestsInput.closest('.settings-item').setAttribute('aria-checked', String(showDests));
 
+function setShowPanel(value) {
+  showPanel = value;
+  showPanelInput.checked = value;
+  showPanelInput.closest('.settings-item').setAttribute('aria-checked', String(value));
+  localStorage.setItem('fen-viewer.showPanel', String(value));
+  sidePanelEl.hidden = !value;
+  window.dispatchEvent(new Event('resize'));
+}
+
 showDestsInput.addEventListener('change', () => {
   showDestsInput.closest('.settings-item').setAttribute('aria-checked', String(showDestsInput.checked));
   showDests = showDestsInput.checked;
   localStorage.setItem('fen-viewer.showDests', String(showDests));
   refresh();
 });
+
+showPanelInput.addEventListener('change', () => setShowPanel(showPanelInput.checked));
+
+setShowPanel(showPanel);
 
 document.addEventListener('click', (event) => {
   if (
@@ -473,8 +642,40 @@ document.addEventListener('click', (event) => {
 
 renderTimer();
 
-currentFen = START_FEN;
-game = makeGame(START_FEN);
-timeline = [{ fen: START_FEN, san: null, from: null, to: null, moveNumber: 1, color: 'w' }];
-cursor = 0;
+function loadState() {
+  let saved;
+  try {
+    saved = JSON.parse(sessionStorage.getItem(STATE_KEY));
+  } catch {
+    return false;
+  }
+  if (!saved || typeof saved.currentFen !== 'string' || !isValidFen(saved.currentFen)) {
+    return false;
+  }
+  if (!Array.isArray(saved.timeline) || saved.timeline.length === 0) return false;
+  if (!saved.timeline.every((entry) => entry && isValidFen(entry.fen))) return false;
+
+  const restoredCursor =
+    Number.isInteger(saved.cursor) && saved.cursor >= 0 && saved.cursor < saved.timeline.length
+      ? saved.cursor
+      : saved.timeline.length - 1;
+  const restoredFen = saved.timeline[restoredCursor].fen;
+  const restoredGame = makeGame(restoredFen);
+  if (!restoredGame) return false;
+
+  timeline = saved.timeline;
+  cursor = restoredCursor;
+  currentFen = restoredFen;
+  flipped = Boolean(saved.flipped);
+  game = restoredGame;
+  return true;
+}
+
+if (!loadState()) {
+  currentFen = START_FEN;
+  game = makeGame(START_FEN);
+  timeline = [{ fen: START_FEN, san: null, from: null, to: null, moveNumber: 1, color: 'w' }];
+  cursor = 0;
+}
+
 refresh();

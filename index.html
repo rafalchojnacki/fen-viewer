@@ -36,6 +36,11 @@
                     <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7z" />
                   </svg>
                 </button>
+                <button id="nav-last" type="button" title="Final position" aria-label="Go to final position">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M18 5v14M6 5l10 7-10 7z" />
+                  </svg>
+                </button>
               </div>
             </div>
           </aside>
@@ -85,6 +90,14 @@
           <input id="setting-show-dests" type="checkbox" checked />
           <span class="settings-switch" aria-hidden="true"></span>
         </label>
+        <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
+          <span class="settings-item-label">
+            <span class="settings-item-title">Side panel</span>
+            <span class="settings-item-desc">Show the move list panel</span>
+          </span>
+          <input id="setting-show-panel" type="checkbox" checked />
+          <span class="settings-switch" aria-hidden="true"></span>
+        </label>
         <div class="settings-divider" role="separator"></div>
         <div class="settings-item">
           <span class="settings-item-label">
@@ -92,9 +105,22 @@
             <span class="settings-item-desc">Theme of the page and board</span>
           </span>
           <div class="settings-theme-buttons" role="group" aria-label="Page style">
-            <button type="button" class="settings-theme-btn" data-theme-value="modern" aria-pressed="true">Modern</button>
-            <button type="button" class="settings-theme-btn" data-theme-value="classic" aria-pressed="false">Classic</button>
-            <button type="button" class="settings-theme-btn" data-theme-value="gray" aria-pressed="false">Gray</button>
+            <button type="button" class="settings-theme-btn" data-theme-value="graphite" aria-pressed="false">Graphite</button>
+            <button type="button" class="settings-theme-btn" data-theme-value="walnut" aria-pressed="true">Walnut</button>
+            <button type="button" class="settings-theme-btn" data-theme-value="navy" aria-pressed="false">Navy</button>
+            <button type="button" class="settings-theme-btn" data-theme-value="birch" aria-pressed="false">Birch</button>
+            <button type="button" class="settings-theme-btn" data-theme-value="paper" aria-pressed="false">Paper</button>
+          </div>
+        </div>
+        <div class="settings-divider" role="separator"></div>
+        <div class="settings-item">
+          <span class="settings-item-label">
+            <span class="settings-item-title">Piece set</span>
+            <span class="settings-item-desc">Pieces used on the board</span>
+          </span>
+          <div class="settings-theme-buttons" role="group" aria-label="Piece set">
+            <button type="button" class="settings-theme-btn settings-piece-btn" data-piece-value="staunty" aria-pressed="true">Staunty</button>
+            <button type="button" class="settings-theme-btn settings-piece-btn" data-piece-value="maestro" aria-pressed="false">Maestro</button>
           </div>
         </div>
       </div>
