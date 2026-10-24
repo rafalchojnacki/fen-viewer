@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/geist-mono": "^5.3.0",
     "@lichess-org/chessground": "^10.1.1",
     "chess.js": "^1.4.0"
   },

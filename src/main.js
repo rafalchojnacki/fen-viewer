@@ -1,6 +1,9 @@
 import { Chess } from 'chess.js';
 import { Chessground } from '@lichess-org/chessground';
 import '@lichess-org/chessground/assets/chessground.base.css';
+import '@fontsource/geist-mono/400.css';
+import '@fontsource/geist-mono/500.css';
+import '@fontsource/geist-mono/600.css';
 import './theme.css';
 import './style.css';
 
@@ -15,11 +18,11 @@ const coordsFilesTop = document.getElementById('coords-files-top');
 const coordsRanksLeft = document.getElementById('coords-ranks-left');
 const coordsRanksRight = document.getElementById('coords-ranks-right');
 const coordsFilesBottom = document.getElementById('coords-files-bottom');
-const moveList = document.getElementById('move-list');
 const navFirst = document.getElementById('nav-first');
 const navPrev = document.getElementById('nav-prev');
 const navNext = document.getElementById('nav-next');
 const navLast = document.getElementById('nav-last');
+
 const promotionOverlay = document.getElementById('promotion');
 const promotionMenu = document.getElementById('promotion-menu');
 
@@ -129,57 +132,6 @@ function legalDests() {
   return dests;
 }
 
-function renderMoves() {
-  const groups = [];
-  for (let i = 1; i < timeline.length; i += 1) {
-    const entry = timeline[i];
-    let group = groups[groups.length - 1];
-    if (!group || group.number !== entry.moveNumber) {
-      group = { number: entry.moveNumber, w: null, b: null };
-      groups.push(group);
-    }
-    group[entry.color] = i;
-  }
-
-  const rows = groups.map((group) => {
-    const row = document.createElement('li');
-    row.className = 'move-row';
-
-    const num = document.createElement('span');
-    num.className = 'move-num';
-    num.textContent = `${group.number}.`;
-    row.appendChild(num);
-    row.appendChild(group.w !== null ? moveButton(group.w) : emptyCell());
-    row.appendChild(group.b !== null ? moveButton(group.b) : emptyCell());
-    return row;
-  });
-
-  moveList.replaceChildren(...rows);
-  moveList.querySelector('.move-ply.active')?.scrollIntoView({ block: 'nearest' });
-}
-
-function moveButton(index) {
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = `move-ply${index === cursor ? ' active' : ''}`;
-  btn.textContent = timeline[index].san;
-  btn.addEventListener('click', () => goto(index));
-  return btn;
-}
-
-function emptyCell() {
-  const el = document.createElement('span');
-  el.className = 'move-ply empty';
-  return el;
-}
-
-function renderNav() {
-  navFirst.disabled = cursor === 0;
-  navPrev.disabled = cursor === 0;
-  navNext.disabled = cursor >= timeline.length - 1;
-  navLast.disabled = cursor >= timeline.length - 1;
-}
-
 function saveState() {
   try {
     sessionStorage.setItem(
@@ -211,8 +163,10 @@ function refresh() {
   renderCoords(ori);
   setTurn(turn === 'white' ? 'w' : 'b');
   fenInput.value = currentFen;
-  renderMoves();
-  renderNav();
+  navFirst.disabled = cursor === 0;
+  navPrev.disabled = cursor === 0;
+  navNext.disabled = cursor >= timeline.length - 1;
+  navLast.disabled = cursor >= timeline.length - 1;
   saveState();
 }
 
@@ -223,6 +177,11 @@ function goto(index) {
   game = makeGame(currentFen);
   refresh();
 }
+
+navFirst.addEventListener('click', () => goto(0));
+navPrev.addEventListener('click', () => goto(cursor - 1));
+navNext.addEventListener('click', () => goto(cursor + 1));
+navLast.addEventListener('click', () => goto(timeline.length - 1));
 
 function commitMove(move, moveNumber, color) {
   timeline = timeline.slice(0, cursor + 1);
@@ -330,10 +289,7 @@ function applyFen(fen) {
   }
 }
 
-navFirst.addEventListener('click', () => goto(0));
-navPrev.addEventListener('click', () => goto(cursor - 1));
-navNext.addEventListener('click', () => goto(cursor + 1));
-navLast.addEventListener('click', () => goto(timeline.length - 1));
+
 
 promotionOverlay.addEventListener('click', (event) => {
   if (event.target === promotionOverlay) {
@@ -387,17 +343,7 @@ document.addEventListener('keydown', (event) => {
         clearTimeout(pendingTimerChordTimeout);
         pendingTimerChordTimeout = null;
       }
-      startTimer();
-      return;
-    }
-    if (k === 'p') {
-      event.preventDefault();
-      pendingTimerChord = false;
-      if (pendingTimerChordTimeout) {
-        clearTimeout(pendingTimerChordTimeout);
-        pendingTimerChordTimeout = null;
-      }
-      pauseTimer();
+      toggleTimer();
       return;
     }
     if (k === 't') {
@@ -472,9 +418,6 @@ function renderTimer() {
   if (timerDisplay) {
     timerDisplay.textContent = formatTime(timerSeconds);
   }
-  if (timerStartPause) {
-    timerStartPause.textContent = timerRunning ? 'Pause' : 'Start';
-  }
   if (timerToggle) {
     timerToggle.classList.toggle('running', timerRunning);
   }
@@ -489,8 +432,17 @@ function stopTimer() {
 }
 
 function resetTimer() {
+  stopTimer();
   timerSeconds = 0;
   renderTimer();
+}
+
+function toggleTimer() {
+  if (timerRunning) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
 }
 
 function startTimer() {
@@ -522,13 +474,7 @@ function toggleTimerPanel() {
 }
 
 if (timerStartPause) {
-  timerStartPause.addEventListener('click', () => {
-    if (timerRunning) {
-      pauseTimer();
-    } else {
-      startTimer();
-    }
-  });
+  timerStartPause.addEventListener('click', toggleTimer);
 }
 
 if (timerReset) {
@@ -543,7 +489,7 @@ const settingsToggle = document.getElementById('settings-toggle');
 const settingsMenu = document.getElementById('settings-menu');
 const showDestsInput = document.getElementById('setting-show-dests');
 const showPanelInput = document.getElementById('setting-show-panel');
-const sidePanelEl = document.querySelector('.side-panel');
+const sideInfoPanelEl = document.querySelector('.side-info-panel');
 const themeButtons = document.querySelectorAll('.settings-theme-btn[data-theme-value]');
 
 function applyTheme(theme) {
@@ -607,26 +553,36 @@ settingsToggle.addEventListener('click', () => {
   }
 });
 
-showDestsInput.checked = showDests;
-showDestsInput.closest('.settings-item').setAttribute('aria-checked', String(showDests));
+if (showDestsInput) {
+  showDestsInput.checked = showDests;
+  showDestsInput.closest('.settings-item')?.setAttribute('aria-checked', String(showDests));
+}
 
 function setShowPanel(value) {
   showPanel = value;
-  showPanelInput.checked = value;
-  showPanelInput.closest('.settings-item').setAttribute('aria-checked', String(value));
+  if (showPanelInput) {
+    showPanelInput.checked = value;
+    showPanelInput.closest('.settings-item')?.setAttribute('aria-checked', String(value));
+  }
   localStorage.setItem('fen-viewer.showPanel', String(value));
-  sidePanelEl.hidden = !value;
+  if (sideInfoPanelEl) {
+    sideInfoPanelEl.hidden = !value;
+  }
   window.dispatchEvent(new Event('resize'));
 }
 
-showDestsInput.addEventListener('change', () => {
-  showDestsInput.closest('.settings-item').setAttribute('aria-checked', String(showDestsInput.checked));
-  showDests = showDestsInput.checked;
-  localStorage.setItem('fen-viewer.showDests', String(showDests));
-  refresh();
-});
+if (showDestsInput) {
+  showDestsInput.addEventListener('change', () => {
+    showDestsInput.closest('.settings-item')?.setAttribute('aria-checked', String(showDestsInput.checked));
+    showDests = showDestsInput.checked;
+    localStorage.setItem('fen-viewer.showDests', String(showDests));
+    refresh();
+  });
+}
 
-showPanelInput.addEventListener('change', () => setShowPanel(showPanelInput.checked));
+if (showPanelInput) {
+  showPanelInput.addEventListener('change', () => setShowPanel(showPanelInput.checked));
+}
 
 setShowPanel(showPanel);
 

@@ -3,6 +3,7 @@
 }
 
 :root {
+  --side-panel-width: clamp(390px, 54vmin, 630px);
   --glass-bg: rgba(40, 42, 50, 0.5);
   --glass-bg-strong: rgba(32, 34, 42, 0.68);
   --glass-border: rgba(255, 255, 255, 0.09);
@@ -194,6 +195,8 @@ main {
   --frame-coord: 1.4rem;
   --frame-extra: calc(2 * var(--frame-pad) + 2 * var(--frame-gap) + 2 * var(--frame-coord));
   --frame-size: calc(var(--board-size) + var(--frame-extra));
+  --fen-row-height: 40px;
+  --board-column-gap: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -208,20 +211,21 @@ main {
   gap: 6px;
   width: var(--frame-size);
   max-width: 100%;
-  align-self: flex-start;
+  align-self: stretch;
 }
 
 .fen-row {
   display: flex;
   gap: 8px;
   width: 100%;
+  height: var(--fen-row-height);
 }
 
 #fen-input {
   flex: 1;
   min-width: 0;
   padding: 10px 14px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 14px;
   color: var(--text-main);
   background: var(--panel-bg, var(--glass-bg));
@@ -304,15 +308,33 @@ main {
 .board-and-panel {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 48px;
 }
 
-.side-panel {
-  width: clamp(300px, 42vmin, 520px);
-  height: var(--frame-size);
+.board-column {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: var(--board-column-gap);
+}
+
+.side-info-panel {
+  width: var(--side-panel-width);
+  /* Full viewport height, centered on the row. The negative margins cancel
+     the height so the panel never changes the row size (board stays put). */
+  height: 100vh;
+  height: 100dvh;
+  margin-block: -50vh;
+  margin-block: -50dvh;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   overflow: hidden;
+  background: var(--panel-bg, var(--glass-bg));
+  border: none;
+  border-radius: 0;
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   backdrop-filter: blur(16px) saturate(140%);
   box-shadow:
@@ -320,46 +342,122 @@ main {
     0 22px 50px -28px rgba(0, 0, 0, 0.8);
 }
 
-.side-panel[hidden] {
+/* Spacer the size of the gap + FEN row under the board, so the inner panel
+   (centered with it) lines up with the board frame. */
+.side-info-panel::after {
+  content: '';
+  flex: none;
+  height: calc(var(--board-column-gap) + var(--fen-row-height));
+}
+
+.side-inner-panel {
+  flex: none;
+  width: 100%;
+  height: var(--frame-size);
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.side-info-panel[hidden] {
   display: none;
 }
 
-.side-panel-footer {
-  padding: 10px;
-  border-top: 1px solid var(--glass-border);
+.analysis-section {
+  flex: 0 0 40%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.movies-section {
+  flex: 1 1 60%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.movies-panel-footer {
+  flex: none;
+  padding: 6px;
+}
+
+.movies-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.movies-placeholder {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.analysis-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.analysis-placeholder {
+  color: var(--text-dim);
+  font-size: 13px;
 }
 
 .move-list {
-  flex: 1;
+  display: none;
+}
+
+.move-table-wrap {
+  flex: 1 1 auto;
+  max-height: 100%;
   min-height: 0;
   overflow-y: auto;
-  margin: 0;
-  padding: 8px;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 14px;
+  padding: 16px 20px 60px 20px;
+  margin: 6px 0 0 0;
+  align-self: stretch;
+  width: 100%;
 }
 
-.move-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
+.move-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
 }
 
-.move-num {
+.move-tr-even {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.move-tr-odd {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.move-td {
+  padding: 2px 4px;
+  vertical-align: middle;
+}
+
+.move-td-num {
+  width: 28px;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 14px;
   text-align: right;
+  white-space: nowrap;
 }
 
 .move-ply {
+  width: 100%;
   padding: 3px 6px;
   font: inherit;
+  font-size: 14px;
   text-align: left;
   color: var(--text-muted);
   background: transparent;
@@ -373,9 +471,9 @@ main {
 }
 
 .move-ply.active {
-  color: var(--on-accent);
-  background: var(--accent-grad);
-  box-shadow: 0 4px 12px -6px var(--accent-shadow);
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
 .move-ply.empty {
@@ -385,22 +483,21 @@ main {
 .nav-buttons {
   display: flex;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 4px;
 }
 
 .nav-buttons button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  min-width: 40px;
-  padding: 0 10px;
+  height: 30px;
+  width: 30px;
+  padding: 0;
   color: var(--text-main);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: transparent;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
   transition: background-color 0.15s ease;
 }
 
@@ -414,8 +511,8 @@ main {
 }
 
 .nav-buttons svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
@@ -735,8 +832,13 @@ main {
   transition: background-color 0.15s ease;
 }
 
-.timer-widget button:hover {
+.timer-widget button:hover:not(:disabled) {
   background-color: var(--hover-bg);
+}
+
+.timer-widget button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 #timer-toggle {
@@ -792,7 +894,7 @@ main {
 .timer-display {
   min-width: 4.5em;
   text-align: center;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 18px;
   font-variant-numeric: tabular-nums;
   color: var(--text-main);
@@ -872,14 +974,33 @@ main {
     align-items: center;
   }
 
-  .side-panel {
+  .side-info-panel {
     width: 100%;
     max-width: var(--frame-size);
     height: auto;
-    max-height: 260px;
+    max-height: 320px;
+    margin-block: 0;
+    justify-content: flex-start;
+  }
+
+  .side-info-panel::after {
+    display: none;
+  }
+
+  .side-inner-panel {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .board-column {
+    width: 100%;
+    max-width: var(--frame-size);
+    align-items: stretch;
   }
 
   .fen-panel {
-    align-self: center;
+    align-self: stretch;
+    width: 100%;
   }
 }
