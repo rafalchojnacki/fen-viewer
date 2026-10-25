@@ -186,6 +186,25 @@ body::after {
   background: var(--blob-2);
 }
 
+.brand-watermark {
+  position: absolute;
+  top: calc(var(--frame-pad) + var(--frame-coord) + var(--frame-gap));
+  right: calc(100% + 16px + 1em);
+  transform: rotate(-90deg);
+  transform-origin: top right;
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  color: var(--text-main);
+  opacity: 0.1;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: clamp(18px, 2vw, 32px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
 main {
   position: relative;
   z-index: 1;
@@ -312,6 +331,7 @@ main {
 }
 
 .board-column {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
