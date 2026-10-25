@@ -319,6 +319,8 @@ main {
 }
 
 .side-info-panel {
+  position: relative;
+  isolation: isolate;
   width: var(--side-panel-width);
   /* Full viewport height, centered on the row. The negative margins cancel
      the height so the panel never changes the row size (board stays put). */
@@ -331,15 +333,30 @@ main {
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
-  background: var(--panel-bg, var(--glass-bg));
   border: none;
   border-radius: 0;
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.side-info-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--panel-bg, var(--glass-bg));
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   backdrop-filter: blur(16px) saturate(140%);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 22px 50px -28px rgba(0, 0, 0, 0.8);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black calc((100% - var(--frame-size) - var(--board-column-gap) - var(--fen-row-height)) / 2),
+    black calc((100% + var(--frame-size) - var(--board-column-gap) - var(--fen-row-height)) / 2),
+    transparent 100%
+  );
 }
 
 /* Spacer the size of the gap + FEN row under the board, so the inner panel
@@ -985,6 +1002,10 @@ main {
 
   .side-info-panel::after {
     display: none;
+  }
+
+  .side-info-panel::before {
+    mask-image: none;
   }
 
   .side-inner-panel {
