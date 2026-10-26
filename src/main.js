@@ -326,6 +326,16 @@ document.addEventListener('keydown', (event) => {
 
   if (pendingTimerChord && !event.ctrlKey && !event.altKey && !event.metaKey) {
     const k = event.key.toLowerCase();
+    if (k === 'n') {
+      event.preventDefault();
+      pendingTimerChord = false;
+      if (pendingTimerChordTimeout) {
+        clearTimeout(pendingTimerChordTimeout);
+        pendingTimerChordTimeout = null;
+      }
+      restartTimer();
+      return;
+    }
     if (k === 'r') {
       event.preventDefault();
       pendingTimerChord = false;
@@ -401,6 +411,7 @@ const timerPanel = document.getElementById('timer-panel');
 const timerDisplay = document.getElementById('timer-display');
 const timerStartPause = document.getElementById('timer-startpause');
 const timerReset = document.getElementById('timer-reset');
+const timerRestart = document.getElementById('timer-restart');
 
 let timerSeconds = 0;
 let timerRunning = false;
@@ -421,6 +432,16 @@ function renderTimer() {
   if (timerToggle) {
     timerToggle.classList.toggle('running', timerRunning);
   }
+  if (timerStartPause) {
+    timerStartPause.innerHTML = timerRunning
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" fill="currentColor"/><rect x="14" y="5" width="4" height="14" fill="currentColor"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon fill="currentColor" points="5 3 19 12 5 21 5 3" /></svg>';
+    timerStartPause.setAttribute('aria-label', timerRunning ? 'Stop' : 'Start');
+    timerStartPause.title = timerRunning ? 'Stop (Alt+T, S)' : 'Start (Alt+T, S)';
+  }
+  if (timerRestart) {
+    timerRestart.disabled = !timerRunning;
+  }
 }
 
 function stopTimer() {
@@ -434,6 +455,19 @@ function stopTimer() {
 function resetTimer() {
   stopTimer();
   timerSeconds = 0;
+  renderTimer();
+}
+
+function restartTimer() {
+  if (!timerRunning) return;
+  timerSeconds = 0;
+  if (timerId) {
+    clearInterval(timerId);
+  }
+  timerId = setInterval(() => {
+    timerSeconds += 1;
+    renderTimer();
+  }, 1000);
   renderTimer();
 }
 
@@ -479,6 +513,10 @@ if (timerStartPause) {
 
 if (timerReset) {
   timerReset.addEventListener('click', resetTimer);
+}
+
+if (timerRestart) {
+  timerRestart.addEventListener('click', restartTimer);
 }
 
 if (timerToggle) {
