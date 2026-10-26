@@ -326,7 +326,7 @@ document.addEventListener('keydown', (event) => {
 
   if (pendingTimerChord && !event.ctrlKey && !event.altKey && !event.metaKey) {
     const k = event.key.toLowerCase();
-    if (k === 'n') {
+    if (k === 'r') {
       event.preventDefault();
       pendingTimerChord = false;
       if (pendingTimerChordTimeout) {
@@ -336,7 +336,7 @@ document.addEventListener('keydown', (event) => {
       restartTimer();
       return;
     }
-    if (k === 'r') {
+    if (k === 'c') {
       event.preventDefault();
       pendingTimerChord = false;
       if (pendingTimerChordTimeout) {
@@ -353,7 +353,19 @@ document.addEventListener('keydown', (event) => {
         clearTimeout(pendingTimerChordTimeout);
         pendingTimerChordTimeout = null;
       }
-      toggleTimer();
+      if (!timerRunning) {
+        startTimer();
+      }
+      return;
+    }
+    if (k === 'p') {
+      event.preventDefault();
+      pendingTimerChord = false;
+      if (pendingTimerChordTimeout) {
+        clearTimeout(pendingTimerChordTimeout);
+        pendingTimerChordTimeout = null;
+      }
+      pauseTimer();
       return;
     }
     if (k === 't') {
@@ -436,8 +448,8 @@ function renderTimer() {
     timerStartPause.innerHTML = timerRunning
       ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" fill="currentColor"/><rect x="14" y="5" width="4" height="14" fill="currentColor"/></svg>'
       : '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon fill="currentColor" points="5 3 19 12 5 21 5 3" /></svg>';
-    timerStartPause.setAttribute('aria-label', timerRunning ? 'Stop' : 'Start');
-    timerStartPause.title = timerRunning ? 'Stop (Alt+T, S)' : 'Start (Alt+T, S)';
+    timerStartPause.setAttribute('aria-label', timerRunning ? 'Pause' : 'Start');
+    timerStartPause.title = timerRunning ? 'Pause (Alt+T, P)' : 'Start (Alt+T, S)';
   }
   if (timerRestart) {
     timerRestart.disabled = !timerRunning;
