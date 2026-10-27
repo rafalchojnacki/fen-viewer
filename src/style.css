@@ -147,6 +147,7 @@
 html,
 body {
   height: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -325,9 +326,26 @@ main {
 }
 
 .board-and-panel {
+  --side-panel-left: min(
+    calc(50vw + var(--frame-size) / 2 + 72px),
+    calc(100vw - 24px - var(--side-panel-width))
+  );
   display: flex;
   align-items: flex-start;
   gap: 72px;
+  /* Keep the board on the viewport centre line while there is room for the
+     panel at its right. Once that would push the panel beyond the page
+     padding, shift the pair left only by the amount needed to keep it in view. */
+  transform: translateX(
+    min(
+      calc((var(--side-panel-width) + 72px) / 2),
+      calc(50vw - 24px - (var(--frame-size) + 72px + var(--side-panel-width)) / 2)
+    )
+  );
+}
+
+.board-and-panel:has(.side-info-panel[hidden]) {
+  transform: none;
 }
 
 .board-column {
@@ -363,8 +381,9 @@ main {
   left: 0;
   top: 0;
   bottom: 0;
-  /* The row is centered: extend from the sidebar's left edge to the viewport. */
-  width: calc(50vw + (var(--side-panel-width) - var(--frame-size) - 72px) / 2);
+  /* End the gradient at the viewport edge, including when the board shifts
+     left to make room for the sidebar. */
+  width: calc(100vw - var(--side-panel-left));
   z-index: -1;
   pointer-events: none;
   background: var(--panel-bg, var(--glass-bg));
@@ -1021,6 +1040,7 @@ main {
   .board-and-panel {
     flex-direction: column;
     align-items: center;
+    transform: none;
   }
 
   .side-info-panel {
