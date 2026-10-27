@@ -327,7 +327,7 @@ main {
 .board-and-panel {
   display: flex;
   align-items: flex-start;
-  gap: 48px;
+  gap: 72px;
 }
 
 .board-column {
@@ -352,29 +352,34 @@ main {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   border: none;
   border-radius: 0;
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.side-info-panel::before {
-  content: '';
+.side-panel-bg {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  /* The row is centered: extend from the sidebar's left edge to the viewport. */
+  width: calc(50vw + (var(--side-panel-width) - var(--frame-size) - 72px) / 2);
   z-index: -1;
   pointer-events: none;
   background: var(--panel-bg, var(--glass-bg));
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   backdrop-filter: blur(16px) saturate(140%);
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 22px 50px -28px rgba(0, 0, 0, 0.8);
   mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black calc((100% - var(--frame-size) - var(--board-column-gap) - var(--fen-row-height)) / 2),
-    black calc((100% + var(--frame-size) - var(--board-column-gap) - var(--fen-row-height)) / 2),
+    to right,
+    black 0%,
+    black 70%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    black 0%,
+    black 70%,
     transparent 100%
   );
 }
@@ -408,7 +413,6 @@ main {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-bottom: 1px solid var(--glass-border);
 }
 
 .movies-section {
@@ -1032,8 +1036,11 @@ main {
     display: none;
   }
 
-  .side-info-panel::before {
+  .side-panel-bg {
+    inset: 0;
+    width: 100%;
     mask-image: none;
+    -webkit-mask-image: none;
   }
 
   .side-inner-panel {
