@@ -326,10 +326,6 @@ main {
 }
 
 .board-and-panel {
-  --side-panel-left: min(
-    calc(50vw + var(--frame-size) / 2 + 72px),
-    calc(100vw - 24px - var(--side-panel-width))
-  );
   display: flex;
   align-items: flex-start;
   gap: 72px;
@@ -374,33 +370,6 @@ main {
   border: none;
   border-radius: 0;
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.side-panel-bg {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  /* End the gradient at the viewport edge, including when the board shifts
-     left to make room for the sidebar. */
-  width: calc(100vw - var(--side-panel-left));
-  z-index: -1;
-  pointer-events: none;
-  background: var(--panel-bg, var(--glass-bg));
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
-  mask-image: linear-gradient(
-    to right,
-    black 0%,
-    black 70%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    black 0%,
-    black 70%,
-    transparent 100%
-  );
 }
 
 /* Spacer the size of the gap + FEN row under the board, so the inner panel
@@ -1054,13 +1023,6 @@ main {
 
   .side-info-panel::after {
     display: none;
-  }
-
-  .side-panel-bg {
-    inset: 0;
-    width: 100%;
-    mask-image: none;
-    -webkit-mask-image: none;
   }
 
   .side-inner-panel {
