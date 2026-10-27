@@ -22,6 +22,7 @@ const navFirst = document.getElementById('nav-first');
 const navPrev = document.getElementById('nav-prev');
 const navNext = document.getElementById('nav-next');
 const navLast = document.getElementById('nav-last');
+const moveList = document.getElementById('move-list');
 
 const promotionOverlay = document.getElementById('promotion');
 const promotionMenu = document.getElementById('promotion-menu');
@@ -167,7 +168,75 @@ function refresh() {
   navPrev.disabled = cursor === 0;
   navNext.disabled = cursor >= timeline.length - 1;
   navLast.disabled = cursor >= timeline.length - 1;
+  renderMoveList();
   saveState();
+}
+
+function createMoveButton(index) {
+  const entry = timeline[index];
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `move-ply${index === cursor ? ' active' : ''}`;
+  button.textContent = entry.san;
+  button.setAttribute('aria-label', `Move ${entry.moveNumber}${entry.color === 'w' ? ', White' : ', Black'}: ${entry.san}`);
+  button.addEventListener('click', () => goto(index));
+  return button;
+}
+
+function renderMoveList() {
+  if (!moveList) return;
+
+  if (timeline.length === 1) {
+    const empty = document.createElement('div');
+    empty.className = 'move-list-empty';
+    empty.textContent = 'No moves yet';
+    moveList.replaceChildren(empty);
+    return;
+  }
+
+  const rows = new Map();
+  timeline.slice(1).forEach((entry, offset) => {
+    const index = offset + 1;
+    const row = rows.get(entry.moveNumber) || {};
+    row[entry.color] = index;
+    rows.set(entry.moveNumber, row);
+  });
+
+  const table = document.createElement('table');
+  table.className = 'move-table';
+  const body = document.createElement('tbody');
+
+  for (const [moveNumber, row] of rows) {
+    const tr = document.createElement('tr');
+    tr.className = moveNumber % 2 === 0 ? 'move-tr-even' : 'move-tr-odd';
+
+    const numberCell = document.createElement('td');
+    numberCell.className = 'move-td move-td-num';
+    numberCell.textContent = `${moveNumber}.`;
+    tr.appendChild(numberCell);
+
+    for (const color of ['w', 'b']) {
+      const cell = document.createElement('td');
+      cell.className = 'move-td';
+      if (row[color] === undefined) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'move-ply empty';
+        placeholder.textContent = '–';
+        cell.appendChild(placeholder);
+      } else {
+        cell.appendChild(createMoveButton(row[color]));
+      }
+      tr.appendChild(cell);
+    }
+
+    body.appendChild(tr);
+  }
+
+  table.appendChild(body);
+  const wrap = document.createElement('div');
+  wrap.className = 'move-table-wrap';
+  wrap.appendChild(table);
+  moveList.replaceChildren(wrap);
 }
 
 function goto(index) {
