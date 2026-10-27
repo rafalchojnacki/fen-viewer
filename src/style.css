@@ -326,22 +326,21 @@ main {
 }
 
 .board-and-panel {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 72px;
   /* Keep the board on the viewport centre line while there is room for the
      panel at its right. Once that would push the panel beyond the page
-     padding, shift the pair left only by the amount needed to keep it in view. */
-  transform: translateX(
-    min(
-      calc((var(--side-panel-width) + 72px) / 2),
-      calc(50vw - 24px - (var(--frame-size) + 72px + var(--side-panel-width)) / 2)
-    )
+     edge, shift the pair left only by the amount needed to keep it in view. */
+  left: min(
+    calc((var(--side-panel-width) + 72px) / 2),
+    calc(50vw - (var(--frame-size) + 72px + var(--side-panel-width)) / 2)
   );
 }
 
 .board-and-panel:has(.side-info-panel[hidden]) {
-  transform: none;
+  left: 0;
 }
 
 .board-column {
@@ -1009,7 +1008,7 @@ main {
   .board-and-panel {
     flex-direction: column;
     align-items: center;
-    transform: none;
+    left: 0;
   }
 
   .side-info-panel {
