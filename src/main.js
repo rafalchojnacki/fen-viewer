@@ -23,6 +23,7 @@ const navPrev = document.getElementById('nav-prev');
 const navNext = document.getElementById('nav-next');
 const navLast = document.getElementById('nav-last');
 const moveList = document.getElementById('move-list');
+const moveContextMenu = document.getElementById('move-context-menu');
 
 const promotionOverlay = document.getElementById('promotion');
 const promotionMenu = document.getElementById('promotion-menu');
@@ -35,8 +36,11 @@ const PROMOTION_NAMES = { q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight' };
 let currentFen = START_FEN;
 let flipped = false;
 let game = null;
-let timeline = [{ fen: START_FEN, san: null, from: null, to: null, moveNumber: 1, color: 'w' }];
-let cursor = 0;
+let moveTree = createRoot(START_FEN);
+let currentNodeId = moveTree.id;
+let nodeById = new Map();
+let parentById = new Map();
+let nextNodeId = 1;
 let pendingPromotion = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
 let showPanel = localStorage.getItem('fen-viewer.showPanel') !== 'false';
@@ -45,6 +49,56 @@ const STATE_KEY = 'fen-viewer.state';
 
 const turnColor = (fen) => (fen.trim().split(/\s+/)[1] === 'w' ? 'white' : 'black');
 const orientation = () => (flipped ? 'black' : 'white');
+
+function createRoot(fen) {
+  return {
+    id: 'root',
+    fen,
+    san: null,
+    from: null,
+    to: null,
+    promotion: null,
+    moveNumber: null,
+    color: null,
+    children: [],
+    mainChildId: null,
+  };
+}
+
+function reindexTree() {
+  nodeById = new Map();
+  parentById = new Map();
+  const visit = (node, parent = null) => {
+    nodeById.set(node.id, node);
+    if (parent) parentById.set(node.id, parent.id);
+    if (!Array.isArray(node.children)) node.children = [];
+    if (node.children.length && !node.children.some((child) => child.id === node.mainChildId)) {
+      node.mainChildId = node.children[0].id;
+    }
+    if (!node.children.length) node.mainChildId = null;
+    node.children.forEach((child) => visit(child, node));
+  };
+  visit(moveTree);
+  while (nodeById.has(`node-${nextNodeId}`)) nextNodeId += 1;
+}
+
+function currentNode() {
+  return nodeById.get(currentNodeId) || moveTree;
+}
+
+function parentOf(node) {
+  return nodeById.get(parentById.get(node.id)) || null;
+}
+
+function mainChildOf(node) {
+  return node.children.find((child) => child.id === node.mainChildId) || null;
+}
+
+function newNodeId() {
+  const id = `node-${nextNodeId}`;
+  nextNodeId += 1;
+  return id;
+}
 
 const ground = Chessground(boardEl, {
   fen: START_FEN,
@@ -137,7 +191,7 @@ function saveState() {
   try {
     sessionStorage.setItem(
       STATE_KEY,
-      JSON.stringify({ currentFen, timeline, cursor, flipped }),
+      JSON.stringify({ moveTree, currentNodeId, flipped }),
     );
   } catch {
     /* ignore storage errors */
@@ -145,9 +199,10 @@ function saveState() {
 }
 
 function refresh() {
+  const entry = currentNode();
+  currentFen = entry.fen;
   const ori = orientation();
   const turn = turnColor(currentFen);
-  const entry = timeline[cursor];
   ground.set({
     fen: currentFen,
     orientation: ori,
@@ -164,29 +219,29 @@ function refresh() {
   renderCoords(ori);
   setTurn(turn === 'white' ? 'w' : 'b');
   fenInput.value = currentFen;
-  navFirst.disabled = cursor === 0;
-  navPrev.disabled = cursor === 0;
-  navNext.disabled = cursor >= timeline.length - 1;
-  navLast.disabled = cursor >= timeline.length - 1;
+  navFirst.disabled = entry.id === moveTree.id;
+  navPrev.disabled = entry.id === moveTree.id;
+  navNext.disabled = !mainChildOf(entry);
+  navLast.disabled = !mainChildOf(entry);
   renderMoveList();
   saveState();
 }
 
-function createMoveButton(index) {
-  const entry = timeline[index];
+function createMoveButton(entry) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = `move-ply${index === cursor ? ' active' : ''}`;
+  button.className = `move-ply${entry.id === currentNodeId ? ' active' : ''}`;
   button.textContent = entry.san;
   button.setAttribute('aria-label', `Move ${entry.moveNumber}${entry.color === 'w' ? ', White' : ', Black'}: ${entry.san}`);
-  button.addEventListener('click', () => goto(index));
+  button.addEventListener('click', () => goto(entry.id));
+  button.addEventListener('contextmenu', (event) => openMoveContextMenu(event, entry));
   return button;
 }
 
 function renderMoveList() {
   if (!moveList) return;
 
-  if (timeline.length === 1) {
+  if (!moveTree.children.length) {
     const empty = document.createElement('div');
     empty.className = 'move-list-empty';
     empty.textContent = 'No moves yet';
@@ -194,77 +249,195 @@ function renderMoveList() {
     return;
   }
 
-  const rows = new Map();
-  timeline.slice(1).forEach((entry, offset) => {
-    const index = offset + 1;
-    const row = rows.get(entry.moveNumber) || {};
-    row[entry.color] = index;
-    rows.set(entry.moveNumber, row);
-  });
-
-  const table = document.createElement('table');
-  table.className = 'move-table';
-  const body = document.createElement('tbody');
-
-  for (const [moveNumber, row] of rows) {
-    const tr = document.createElement('tr');
-    tr.className = moveNumber % 2 === 0 ? 'move-tr-even' : 'move-tr-odd';
-
-    const numberCell = document.createElement('td');
-    numberCell.className = 'move-td move-td-num';
-    numberCell.textContent = `${moveNumber}.`;
-    tr.appendChild(numberCell);
-
-    for (const color of ['w', 'b']) {
-      const cell = document.createElement('td');
-      cell.className = 'move-td';
-      if (row[color] === undefined) {
-        const placeholder = document.createElement('span');
-        placeholder.className = 'move-ply empty';
-        placeholder.textContent = '–';
-        cell.appendChild(placeholder);
-      } else {
-        cell.appendChild(createMoveButton(row[color]));
-      }
-      tr.appendChild(cell);
+  const moves = document.createDocumentFragment();
+  const appendVariations = (parent) => {
+    parent.children
+      .filter((child) => child.id !== parent.mainChildId)
+      .forEach((variation) => {
+        const open = document.createElement('span');
+        open.className = 'variation-bracket';
+        open.textContent = '(';
+        moves.appendChild(open);
+        appendLine(variation);
+        const close = document.createElement('span');
+        close.className = 'variation-bracket';
+        close.textContent = ')';
+        moves.appendChild(close);
+      });
+  };
+  const appendLine = (node, context = { previousMoveNumber: null }) => {
+    if (node.color === 'w' || node.moveNumber !== context.previousMoveNumber) {
+      const number = document.createElement('span');
+      number.className = 'move-number';
+      number.textContent = `${node.moveNumber}${node.color === 'w' ? '.' : '...'}`;
+      moves.appendChild(number);
     }
+    moves.appendChild(createMoveButton(node));
+    context.previousMoveNumber = node.moveNumber;
 
-    body.appendChild(tr);
-  }
+    appendVariations(node);
+    const main = mainChildOf(node);
+    if (main) appendLine(main, context);
+  };
 
-  table.appendChild(body);
-  const wrap = document.createElement('div');
-  wrap.className = 'move-table-wrap';
-  wrap.appendChild(table);
-  moveList.replaceChildren(wrap);
+  appendVariations(moveTree);
+  const main = mainChildOf(moveTree);
+  if (main) appendLine(main);
+
+  moveList.replaceChildren(moves);
 }
 
-function goto(index) {
-  if (index < 0 || index >= timeline.length) return;
-  cursor = index;
-  currentFen = timeline[cursor].fen;
+function goto(id) {
+  const entry = nodeById.get(id);
+  if (!entry) return;
+  currentNodeId = id;
+  currentFen = entry.fen;
   game = makeGame(currentFen);
   refresh();
 }
 
-navFirst.addEventListener('click', () => goto(0));
-navPrev.addEventListener('click', () => goto(cursor - 1));
-navNext.addEventListener('click', () => goto(cursor + 1));
-navLast.addEventListener('click', () => goto(timeline.length - 1));
+navFirst.addEventListener('click', () => goto(moveTree.id));
+navPrev.addEventListener('click', () => {
+  const parent = parentOf(currentNode());
+  if (parent) goto(parent.id);
+});
+navNext.addEventListener('click', () => {
+  const next = mainChildOf(currentNode());
+  if (next) goto(next.id);
+});
+navLast.addEventListener('click', () => {
+  let last = currentNode();
+  while (mainChildOf(last)) last = mainChildOf(last);
+  goto(last.id);
+});
 
 function commitMove(move, moveNumber, color) {
-  timeline = timeline.slice(0, cursor + 1);
-  timeline.push({
+  const parent = currentNode();
+  const existing = parent.children.find(
+    (child) => child.from === move.from && child.to === move.to && child.promotion === (move.promotion || null),
+  );
+  if (existing) {
+    goto(existing.id);
+    return;
+  }
+  const entry = {
+    id: newNodeId(),
     fen: game.fen(),
     san: move.san,
     from: move.from,
     to: move.to,
+    promotion: move.promotion || null,
     moveNumber,
     color,
-  });
-  cursor = timeline.length - 1;
+    children: [],
+    mainChildId: null,
+  };
+  parent.children.push(entry);
+  if (!parent.mainChildId) parent.mainChildId = entry.id;
+  reindexTree();
+  currentNodeId = entry.id;
   currentFen = game.fen();
   refresh();
+}
+
+function isSideVariation(entry) {
+  const parent = parentOf(entry);
+  return Boolean(parent && parent.mainChildId !== entry.id);
+}
+
+function closeMoveContextMenu() {
+  if (moveContextMenu) {
+    moveContextMenu.hidden = true;
+    moveContextMenu.replaceChildren();
+  }
+}
+
+function addContextAction(label, action, disabled = false) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.setAttribute('role', 'menuitem');
+  button.textContent = label;
+  button.disabled = disabled;
+  button.addEventListener('click', () => {
+    closeMoveContextMenu();
+    action();
+  });
+  moveContextMenu.appendChild(button);
+}
+
+function promoteVariation(entry) {
+  const parent = parentOf(entry);
+  if (!parent || parent.mainChildId === entry.id) return;
+  parent.mainChildId = entry.id;
+  refresh();
+}
+
+function reorderVariation(entry, direction) {
+  const parent = parentOf(entry);
+  if (!parent || parent.mainChildId === entry.id) return;
+  const variationIndexes = parent.children
+    .map((child, index) => ({ child, index }))
+    .filter(({ child }) => child.id !== parent.mainChildId);
+  const position = variationIndexes.findIndex(({ child }) => child.id === entry.id);
+  const target = position + direction;
+  if (position < 0 || target < 0 || target >= variationIndexes.length) return;
+  const sourceIndex = variationIndexes[position].index;
+  const targetIndex = variationIndexes[target].index;
+  [parent.children[sourceIndex], parent.children[targetIndex]] = [
+    parent.children[targetIndex],
+    parent.children[sourceIndex],
+  ];
+  refresh();
+}
+
+function isInSubtree(root, entry) {
+  let current = entry;
+  while (current) {
+    if (current.id === root.id) return true;
+    current = parentOf(current);
+  }
+  return false;
+}
+
+function deleteMove(entry) {
+  const parent = parentOf(entry);
+  if (!parent) return;
+  if (!window.confirm(`Delete ${entry.san} and all moves that follow it?`)) return;
+  const activeWasDeleted = isInSubtree(entry, currentNode());
+  parent.children = parent.children.filter((child) => child.id !== entry.id);
+  if (parent.mainChildId === entry.id) {
+    parent.mainChildId = parent.children[0]?.id || null;
+  }
+  reindexTree();
+  if (activeWasDeleted) {
+    currentNodeId = parent.id;
+    currentFen = parent.fen;
+    game = makeGame(currentFen);
+  }
+  refresh();
+}
+
+function openMoveContextMenu(event, entry) {
+  event.preventDefault();
+  if (!moveContextMenu) return;
+  moveContextMenu.replaceChildren();
+
+  if (isSideVariation(entry)) {
+    const parent = parentOf(entry);
+    const variations = parent.children.filter((child) => child.id !== parent.mainChildId);
+    const variationIndex = variations.findIndex((child) => child.id === entry.id);
+    addContextAction('Make main line', () => promoteVariation(entry));
+    if (variations.length > 1) {
+      addContextAction('Move variation up', () => reorderVariation(entry, -1), variationIndex === 0);
+      addContextAction('Move variation down', () => reorderVariation(entry, 1), variationIndex === variations.length - 1);
+    }
+  }
+
+  addContextAction('Delete from here', () => deleteMove(entry));
+  moveContextMenu.hidden = false;
+  const { width, height } = moveContextMenu.getBoundingClientRect();
+  moveContextMenu.style.left = `${Math.min(event.clientX, window.innerWidth - width - 8)}px`;
+  moveContextMenu.style.top = `${Math.min(event.clientY, window.innerHeight - height - 8)}px`;
 }
 
 function onMove(orig, dest) {
@@ -346,10 +519,10 @@ function applyFen(fen) {
     currentFen = trimmed;
     game = parsed;
     flipped = color === 'b';
-    timeline = [
-      { fen: trimmed, san: null, from: null, to: null, moveNumber, color },
-    ];
-    cursor = 0;
+    moveTree = createRoot(trimmed);
+    currentNodeId = moveTree.id;
+    nextNodeId = 1;
+    reindexTree();
     refresh();
   } else {
     fenInput.classList.add('invalid');
@@ -368,6 +541,10 @@ promotionOverlay.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && moveContextMenu && !moveContextMenu.hidden) {
+    closeMoveContextMenu();
+    return;
+  }
   if (event.key === 'Escape' && pendingPromotion) {
     closePromotion();
     refresh();
@@ -467,10 +644,12 @@ document.addEventListener('keydown', (event) => {
   if (!event.ctrlKey && !event.metaKey && !event.altKey) {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      goto(cursor - 1);
+      const parent = parentOf(currentNode());
+      if (parent) goto(parent.id);
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
-      goto(cursor + 1);
+      const next = mainChildOf(currentNode());
+      if (next) goto(next.id);
     }
   }
 });
@@ -706,6 +885,9 @@ if (showPanelInput) {
 setShowPanel(showPanel);
 
 document.addEventListener('click', (event) => {
+  if (!moveContextMenu.hidden && !moveContextMenu.contains(event.target)) {
+    closeMoveContextMenu();
+  }
   if (
     !settingsMenu.hidden &&
     !settingsToggle.contains(event.target) &&
@@ -724,33 +906,60 @@ function loadState() {
   } catch {
     return false;
   }
-  if (!saved || typeof saved.currentFen !== 'string' || !isValidFen(saved.currentFen)) {
-    return false;
+  if (!saved) return false;
+
+  if (saved.moveTree) {
+    const ids = new Set();
+    const isValidNode = (node, isRoot = false) => {
+      if (!node || typeof node.id !== 'string' || ids.has(node.id) || !isValidFen(node.fen)) return false;
+      if (!isRoot && (typeof node.san !== 'string' || !['w', 'b'].includes(node.color))) return false;
+      if (!Array.isArray(node.children)) return false;
+      ids.add(node.id);
+      return node.children.every((child) => isValidNode(child));
+    };
+    if (!isValidNode(saved.moveTree, true)) return false;
+    moveTree = saved.moveTree;
+    nextNodeId = 1;
+    reindexTree();
+    currentNodeId = nodeById.has(saved.currentNodeId) ? saved.currentNodeId : moveTree.id;
+  } else {
+    if (!Array.isArray(saved.timeline) || saved.timeline.length === 0) return false;
+    if (!saved.timeline.every((entry) => entry && isValidFen(entry.fen))) return false;
+    moveTree = createRoot(saved.timeline[0].fen);
+    let parent = moveTree;
+    nextNodeId = 1;
+    saved.timeline.slice(1).forEach((entry) => {
+      const child = {
+        ...entry,
+        id: newNodeId(),
+        promotion: entry.promotion || null,
+        children: [],
+        mainChildId: null,
+      };
+      parent.children.push(child);
+      parent.mainChildId = child.id;
+      parent = child;
+    });
+    reindexTree();
+    const legacyCursor = Number.isInteger(saved.cursor) ? saved.cursor : saved.timeline.length - 1;
+    const legacyPath = [moveTree, ...Array.from(nodeById.values()).filter((node) => node.id !== moveTree.id)];
+    currentNodeId = legacyPath[Math.max(0, Math.min(legacyCursor, legacyPath.length - 1))].id;
   }
-  if (!Array.isArray(saved.timeline) || saved.timeline.length === 0) return false;
-  if (!saved.timeline.every((entry) => entry && isValidFen(entry.fen))) return false;
 
-  const restoredCursor =
-    Number.isInteger(saved.cursor) && saved.cursor >= 0 && saved.cursor < saved.timeline.length
-      ? saved.cursor
-      : saved.timeline.length - 1;
-  const restoredFen = saved.timeline[restoredCursor].fen;
-  const restoredGame = makeGame(restoredFen);
-  if (!restoredGame) return false;
-
-  timeline = saved.timeline;
-  cursor = restoredCursor;
-  currentFen = restoredFen;
+  currentFen = currentNode().fen;
+  game = makeGame(currentFen);
+  if (!game) return false;
   flipped = Boolean(saved.flipped);
-  game = restoredGame;
   return true;
 }
 
 if (!loadState()) {
   currentFen = START_FEN;
   game = makeGame(START_FEN);
-  timeline = [{ fen: START_FEN, san: null, from: null, to: null, moveNumber: 1, color: 'w' }];
-  cursor = 0;
+  moveTree = createRoot(START_FEN);
+  currentNodeId = moveTree.id;
+  nextNodeId = 1;
+  reindexTree();
 }
 
 refresh();
