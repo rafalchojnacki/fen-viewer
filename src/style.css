@@ -189,9 +189,9 @@ body::after {
 
 .brand-watermark {
   position: absolute;
-  top: calc(var(--frame-pad) + var(--frame-coord) + var(--frame-gap));
-  right: calc(100% + 16px + 1em);
-  transform: rotate(-90deg);
+  top: calc(var(--frame-size) - var(--frame-pad) - var(--frame-coord) - var(--frame-gap));
+  right: calc(100% + 16px);
+  transform: rotate(90deg);
   transform-origin: top right;
   white-space: nowrap;
   z-index: 2;
@@ -204,6 +204,11 @@ body::after {
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.06em;
+}
+
+.brand-watermark span {
+  display: block;
+  transform: rotate(180deg);
 }
 
 main {
