@@ -73,6 +73,16 @@
       </div>
     </main>
     <div id="move-context-menu" class="move-context-menu" role="menu" hidden></div>
+    <div id="delete-dialog" class="delete-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title" hidden>
+      <div class="delete-dialog-panel">
+        <h2 id="delete-dialog-title">Delete moves?</h2>
+        <p id="delete-dialog-message"></p>
+        <div class="delete-dialog-actions">
+          <button id="delete-cancel" type="button">Cancel</button>
+          <button id="delete-confirm" type="button">Delete</button>
+        </div>
+      </div>
+    </div>
     <div id="promotion" class="promotion" hidden>
       <div class="promotion-menu" id="promotion-menu" role="dialog" aria-label="Choose promotion piece"></div>
     </div>

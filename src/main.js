@@ -24,6 +24,10 @@ const navNext = document.getElementById('nav-next');
 const navLast = document.getElementById('nav-last');
 const moveList = document.getElementById('move-list');
 const moveContextMenu = document.getElementById('move-context-menu');
+const deleteDialog = document.getElementById('delete-dialog');
+const deleteDialogMessage = document.getElementById('delete-dialog-message');
+const deleteCancel = document.getElementById('delete-cancel');
+const deleteConfirm = document.getElementById('delete-confirm');
 
 const promotionOverlay = document.getElementById('promotion');
 const promotionMenu = document.getElementById('promotion-menu');
@@ -42,6 +46,7 @@ let nodeById = new Map();
 let parentById = new Map();
 let nextNodeId = 1;
 let pendingPromotion = null;
+let pendingDeleteEntry = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
 let showPanel = localStorage.getItem('fen-viewer.showPanel') !== 'false';
 let currentPieces = localStorage.getItem('fen-viewer.pieces') || 'staunty';
@@ -266,13 +271,16 @@ function renderMoveList() {
       });
   };
   const appendLine = (node, context = { previousMoveNumber: null }) => {
+    const moveEntry = document.createElement('span');
+    moveEntry.className = 'move-entry';
     if (node.color === 'w' || node.moveNumber !== context.previousMoveNumber) {
       const number = document.createElement('span');
       number.className = 'move-number';
       number.textContent = `${node.moveNumber}${node.color === 'w' ? '.' : '...'}`;
-      moves.appendChild(number);
+      moveEntry.appendChild(number);
     }
-    moves.appendChild(createMoveButton(node));
+    moveEntry.appendChild(createMoveButton(node));
+    moves.appendChild(moveEntry);
     context.previousMoveNumber = node.moveNumber;
 
     appendVariations(node);
@@ -399,10 +407,18 @@ function isInSubtree(root, entry) {
   return false;
 }
 
-function deleteMove(entry) {
+function countSubtree(entry) {
+  return 1 + entry.children.reduce((count, child) => count + countSubtree(child), 0);
+}
+
+function closeDeleteDialog() {
+  pendingDeleteEntry = null;
+  deleteDialog.hidden = true;
+}
+
+function performDelete(entry) {
   const parent = parentOf(entry);
   if (!parent) return;
-  if (!window.confirm(`Delete ${entry.san} and all moves that follow it?`)) return;
   const activeWasDeleted = isInSubtree(entry, currentNode());
   parent.children = parent.children.filter((child) => child.id !== entry.id);
   if (parent.mainChildId === entry.id) {
@@ -415,6 +431,18 @@ function deleteMove(entry) {
     game = makeGame(currentFen);
   }
   refresh();
+}
+
+function deleteMove(entry) {
+  const count = countSubtree(entry);
+  if (count === 1) {
+    performDelete(entry);
+    return;
+  }
+  pendingDeleteEntry = entry;
+  deleteDialogMessage.textContent = `Delete ${entry.san} and ${count - 1} move${count === 2 ? '' : 's'} that follow it?`;
+  deleteDialog.hidden = false;
+  deleteConfirm.focus();
 }
 
 function openMoveContextMenu(event, entry) {
@@ -540,7 +568,21 @@ promotionOverlay.addEventListener('click', (event) => {
   }
 });
 
+deleteCancel.addEventListener('click', closeDeleteDialog);
+deleteConfirm.addEventListener('click', () => {
+  const entry = pendingDeleteEntry;
+  closeDeleteDialog();
+  if (entry) performDelete(entry);
+});
+deleteDialog.addEventListener('click', (event) => {
+  if (event.target === deleteDialog) closeDeleteDialog();
+});
+
 document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !deleteDialog.hidden) {
+    closeDeleteDialog();
+    return;
+  }
   if (event.key === 'Escape' && moveContextMenu && !moveContextMenu.hidden) {
     closeMoveContextMenu();
     return;
