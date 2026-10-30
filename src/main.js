@@ -9,8 +9,12 @@ import './style.css';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-const fenInput = document.getElementById('fen-input');
-const fenError = document.getElementById('fen-error');
+const importBtn = document.getElementById('import-btn');
+const importDialog = document.getElementById('import-dialog');
+const importInput = document.getElementById('import-input');
+const importError = document.getElementById('import-error');
+const importCancel = document.getElementById('import-cancel');
+const importConfirm = document.getElementById('import-confirm');
 const lichessBtn = document.getElementById('lichess-btn');
 const boardEl = document.getElementById('board');
 const moveIndicator = document.getElementById('move-indicator');
@@ -223,7 +227,6 @@ function refresh() {
   });
   renderCoords(ori);
   setTurn(turn === 'white' ? 'w' : 'b');
-  fenInput.value = currentFen;
   navFirst.disabled = entry.id === moveTree.id;
   navPrev.disabled = entry.id === moveTree.id;
   navNext.disabled = !mainChildOf(entry);
@@ -534,28 +537,95 @@ function completePromotion(piece) {
   }
 }
 
-function applyFen(fen) {
+function importFen(fen) {
   const trimmed = fen.trim();
-  if (isValidFen(trimmed)) {
-    fenInput.classList.remove('invalid');
-    fenError.hidden = true;
-    lichessBtn.disabled = false;
-    const parsed = makeGame(trimmed);
-    const parts = trimmed.split(/\s+/);
-    const moveNumber = parts.length > 5 ? Number(parts[5]) : 1;
-    const color = parts[1];
-    currentFen = trimmed;
-    game = parsed;
-    flipped = color === 'b';
-    moveTree = createRoot(trimmed);
-    currentNodeId = moveTree.id;
-    nextNodeId = 1;
+  if (!isValidFen(trimmed)) return false;
+  const parsed = makeGame(trimmed);
+  if (!parsed) return false;
+  const color = trimmed.split(/\s+/)[1];
+  currentFen = trimmed;
+  game = parsed;
+  flipped = color === 'b';
+  moveTree = createRoot(trimmed);
+  currentNodeId = moveTree.id;
+  nextNodeId = 1;
+  reindexTree();
+  refresh();
+  return true;
+}
+
+function importPgn(pgn) {
+  try {
+    const importedGame = new Chess();
+    importedGame.loadPgn(pgn);
+    const headers = importedGame.getHeaders();
+    const rootFen = headers.FEN || START_FEN;
+    if (!isValidFen(rootFen)) return false;
+    const replay = new Chess(rootFen);
+    const moves = importedGame.history({ verbose: true });
+    if (!moves.length && !Object.keys(headers).length) return false;
+
+    const tree = createRoot(rootFen);
+    let parent = tree;
+    let importedNodeId = 1;
+    for (const importedMove of moves) {
+      const moveNumber = replay.moveNumber();
+      const color = replay.turn();
+      const move = replay.move({
+        from: importedMove.from,
+        to: importedMove.to,
+        promotion: importedMove.promotion,
+      });
+      if (!move) return false;
+      const entry = {
+        id: `node-${importedNodeId++}`,
+        fen: replay.fen(),
+        san: move.san,
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion || null,
+        moveNumber,
+        color,
+        children: [],
+        mainChildId: null,
+      };
+      parent.children.push(entry);
+      parent.mainChildId = entry.id;
+      parent = entry;
+    }
+
+    moveTree = tree;
+    currentNodeId = parent.id;
+    currentFen = parent.fen;
+    game = replay;
+    flipped = rootFen.split(/\s+/)[1] === 'b';
+    nextNodeId = importedNodeId;
     reindexTree();
     refresh();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function closeImportDialog() {
+  importDialog.hidden = true;
+  importError.hidden = true;
+}
+
+function openImportDialog() {
+  importInput.value = '';
+  importError.hidden = true;
+  importDialog.hidden = false;
+  importInput.focus();
+}
+
+function importText() {
+  const text = importInput.value.trim();
+  if (importFen(text) || importPgn(text)) {
+    closeImportDialog();
   } else {
-    fenInput.classList.add('invalid');
-    fenError.hidden = false;
-    lichessBtn.disabled = true;
+    importError.hidden = false;
   }
 }
 
@@ -565,6 +635,19 @@ promotionOverlay.addEventListener('click', (event) => {
   if (event.target === promotionOverlay) {
     closePromotion();
     refresh();
+  }
+});
+
+importBtn.addEventListener('click', openImportDialog);
+importCancel.addEventListener('click', closeImportDialog);
+importConfirm.addEventListener('click', importText);
+importDialog.addEventListener('click', (event) => {
+  if (event.target === importDialog) closeImportDialog();
+});
+importInput.addEventListener('keydown', (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault();
+    importText();
   }
 });
 
@@ -579,6 +662,10 @@ deleteDialog.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !importDialog.hidden) {
+    closeImportDialog();
+    return;
+  }
   if (event.key === 'Escape' && !deleteDialog.hidden) {
     closeDeleteDialog();
     return;
@@ -596,7 +683,7 @@ document.addEventListener('keydown', (event) => {
     closeSettings();
     return;
   }
-  if (event.target === fenInput) return;
+  if (event.target === importInput) return;
   if (pendingPromotion) return;
 
   if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.key.toLowerCase() === 't') {
@@ -694,12 +781,6 @@ document.addEventListener('keydown', (event) => {
       if (next) goto(next.id);
     }
   }
-});
-
-let debounceTimer;
-fenInput.addEventListener('input', () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => applyFen(fenInput.value), 300);
 });
 
 lichessBtn.addEventListener('click', () => {

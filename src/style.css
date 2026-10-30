@@ -247,83 +247,6 @@ main {
   height: var(--fen-row-height);
 }
 
-#fen-input {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 14px;
-  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 14px;
-  color: var(--text-main);
-  background: var(--panel-bg, var(--glass-bg));
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  outline: none;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-#fen-input::placeholder {
-  color: var(--text-dim);
-}
-
-#fen-input:focus {
-  border-color: var(--accent);
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 0 3px var(--focus-ring);
-}
-
-#fen-input.invalid {
-  border-color: #e05656;
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 0 3px rgba(224, 86, 86, 0.25);
-}
-
-.invalid-hint {
-  margin: 0;
-  font-size: 12px;
-  color: #e05656;
-}
-
-#lichess-btn {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  color: var(--text-main);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  cursor: pointer;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-  transition: background-color 0.15s ease;
-}
-
-#lichess-btn svg {
-  width: 22px;
-  height: 22px;
-  display: block;
-}
-
-#lichess-btn:hover:not(:disabled) {
-  background-color: var(--hover-bg);
-}
-
-#lichess-btn:disabled {
-  color: var(--text-dim);
-  background: var(--glass-bg-strong);
-  border-color: var(--glass-border);
-  cursor: not-allowed;
-}
-
 .board-area {
   display: flex;
   flex-direction: column;
@@ -378,14 +301,6 @@ main {
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* Spacer the size of the gap + FEN row under the board, so the inner panel
-   (centered with it) lines up with the board frame. */
-.side-info-panel::after {
-  content: '';
-  flex: none;
-  height: calc(var(--board-column-gap) + var(--fen-row-height));
-}
-
 .side-inner-panel {
   flex: none;
   width: 100%;
@@ -395,6 +310,16 @@ main {
   margin: 0;
   padding: 0;
   border: none;
+}
+
+.movies-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-action-buttons {
+  margin-left: auto;
 }
 
 .side-info-panel[hidden] {
@@ -410,6 +335,7 @@ main {
 }
 
 .movies-section {
+  position: relative;
   flex: 1 1 60%;
   min-height: 0;
   display: flex;
@@ -490,8 +416,9 @@ main {
 
 .move-ply.active {
   color: var(--text-main);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: none;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .move-context-menu {
@@ -531,7 +458,8 @@ main {
   cursor: not-allowed;
 }
 
-.delete-dialog {
+.delete-dialog,
+.import-dialog {
   position: fixed;
   inset: 0;
   z-index: 30;
@@ -542,11 +470,13 @@ main {
   background: rgba(0, 0, 0, 0.55);
 }
 
-.delete-dialog[hidden] {
+.delete-dialog[hidden],
+.import-dialog[hidden] {
   display: none;
 }
 
-.delete-dialog-panel {
+.delete-dialog-panel,
+.import-dialog-panel {
   width: min(100%, 360px);
   padding: 18px;
   color: var(--text-main);
@@ -561,21 +491,59 @@ main {
 }
 
 .delete-dialog-panel h2,
-.delete-dialog-panel p {
+.delete-dialog-panel p,
+.import-dialog-panel h2,
+.import-dialog-panel p {
   margin: 0;
 }
 
-.delete-dialog-panel h2 {
+.delete-dialog-panel h2,
+.import-dialog-panel h2 {
   font-size: 16px;
 }
 
-.delete-dialog-panel p {
+.delete-dialog-panel p,
+.import-dialog-panel p {
   margin-top: 8px;
   color: var(--text-muted);
   font-size: 14px;
 }
 
 .delete-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.import-dialog-panel {
+  width: min(100%, 560px);
+}
+
+#import-input {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 12px;
+  resize: vertical;
+  font: 14px/1.45 "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-main);
+  background: var(--panel-bg, var(--glass-bg));
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  outline: none;
+}
+
+#import-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.import-error {
+  color: #e05656 !important;
+}
+
+.import-dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -593,11 +561,32 @@ main {
   cursor: pointer;
 }
 
+.import-dialog-actions button {
+  padding: 7px 11px;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
 .delete-dialog-actions button:hover {
   background: var(--hover-bg);
 }
 
+.import-dialog-actions button:hover {
+  background: var(--hover-bg);
+}
+
 #delete-confirm {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+#import-confirm {
   color: var(--on-accent);
   background: var(--accent);
   border-color: var(--accent);
@@ -613,8 +602,8 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 30px;
-  width: 30px;
+  height: 32px;
+  width: 32px;
   padding: 0;
   color: var(--text-main);
   background: transparent;
@@ -634,9 +623,19 @@ main {
 }
 
 .nav-buttons svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: block;
+}
+
+#import-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+#lichess-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .board-frame {
@@ -1114,10 +1113,6 @@ main {
     margin-block: 0;
     padding-right: 0;
     justify-content: flex-start;
-  }
-
-  .side-info-panel::after {
-    display: none;
   }
 
   .side-inner-panel {
