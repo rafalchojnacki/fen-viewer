@@ -1274,10 +1274,62 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+function formatEvalComment(engineEval) {
+  if (!isValidEngineEval(engineEval)) return '';
+  if (engineEval.type === 'mate') return `{ [%eval #${engineEval.value}] }`;
+  return `{ [%eval ${engineEval.value.toFixed(2)}] }`;
+}
+
+function formatMoveToken(node, forceNumber) {
+  const parts = [];
+  if (node.color === 'w') parts.push(`${node.moveNumber}. ${node.san}`);
+  else parts.push(forceNumber ? `${node.moveNumber}... ${node.san}` : node.san);
+  if (MOVE_GLYPH_BY_ID.has(node.moveGlyph)) parts.push(`$${node.moveGlyph}`);
+  if (POSITION_GLYPH_BY_ID.has(node.positionGlyph)) parts.push(`$${node.positionGlyph}`);
+  const evalComment = formatEvalComment(node.engineEval);
+  if (evalComment) parts.push(evalComment);
+  return parts.join(' ');
+}
+
+// Formats the line that starts at `first` (a child of `parent`) and continues
+// along main children. PGN places a variation after the move it replaces, so
+// the other children of a main-line move are emitted right after that move.
+// Variation roots are not main children, so their siblings are not emitted
+// again inside the variation (that would recurse forever).
+function formatLine(first, parent, forceNumber = true, firstIsMain = true) {
+  const tokens = [];
+  let node = first;
+  let owner = parent;
+  let isMain = firstIsMain;
+  let force = forceNumber;
+  while (node) {
+    tokens.push(formatMoveToken(node, force));
+    const alternatives = isMain ? owner.children.filter((child) => child.id !== node.id) : [];
+    for (const alternative of alternatives) {
+      tokens.push(`(${formatLine(alternative, owner, true, false).join(' ')})`);
+    }
+    force = alternatives.length > 0;
+    owner = node;
+    node = mainChildOf(node);
+    isMain = true;
+  }
+  return tokens;
+}
+
+function buildPgn() {
+  const headers = [];
+  if (moveTree.fen !== START_FEN) {
+    headers.push('[SetUp "1"]', `[FEN "${moveTree.fen}"]`);
+  }
+  const main = mainChildOf(moveTree);
+  const movetext = main ? formatLine(main, moveTree).join(' ') : '';
+  const body = `${movetext} *`.trim();
+  return headers.length ? `${headers.join('\n')}\n\n${body}` : body;
+}
+
 lichessBtn.addEventListener('click', () => {
   if (lichessBtn.disabled) return;
-  const parts = currentFen.trim().split(/\s+/).slice(0, 4).join(' ');
-  window.open(`https://lichess.org/analysis/${parts.replace(/ /g, '_')}`, '_blank');
+  window.open(`https://lichess.org/analysis/pgn/${encodeURIComponent(buildPgn())}`, '_blank');
 });
 
 const timerToggle = document.getElementById('timer-toggle');
