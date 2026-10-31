@@ -389,6 +389,7 @@ function refresh() {
   renderMoveSelector();
   ensureActiveMoveVisible();
   evalPanel.setFen(currentFen);
+  renderMetaPanel();
   saveState();
 }
 
@@ -1545,6 +1546,7 @@ const settingsMenu = document.getElementById('settings-menu');
 const showDestsInput = document.getElementById('setting-show-dests');
 const showPanelInput = document.getElementById('setting-show-panel');
 const sideInfoPanelEl = document.querySelector('.side-info-panel');
+const metaPanelEl = document.getElementById('meta-panel');
 const themeButtons = document.querySelectorAll('.settings-theme-btn[data-theme-value]');
 
 function applyTheme(theme) {
@@ -1613,6 +1615,66 @@ if (showDestsInput) {
   showDestsInput.closest('.settings-item')?.setAttribute('aria-checked', String(showDests));
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// A PGN tag value is usable unless it is empty or a placeholder ("?", "*", "-").
+function metaValue(value) {
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  return text && !/^[?*-]+$/.test(text) ? text : null;
+}
+
+// PGN date (YYYY.MM.DD, with ?? for unknown parts) to a readable form, e.g. "1 Oct 2026".
+function formatMetaDate(value) {
+  const match = /^(\d{4}|\?{4})\.(\d{2}|\?{2})\.(\d{2}|\?{2})$/.exec(value || '');
+  if (!match) return metaValue(value);
+  const [, year, month, day] = match;
+  const hasYear = /^\d{4}$/.test(year);
+  const hasMonth = /^\d{2}$/.test(month) && Number(month) >= 1 && Number(month) <= 12;
+  const hasDay = /^\d{2}$/.test(day) && Number(day) >= 1;
+  if (hasYear && hasMonth && hasDay) return `${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`;
+  if (hasYear && hasMonth) return `${MONTHS[Number(month) - 1]} ${year}`;
+  if (hasYear) return year;
+  return null;
+}
+
+// Rating in brackets, or null when the tag is missing or not a number.
+function metaElo(value) {
+  const text = metaValue(value);
+  return text && /^\d+$/.test(text) ? `(${text})` : null;
+}
+
+// Fills the game information panel from the root metadata. Fields without a
+// value are hidden. The panel is hidden when side panels are off or when there
+// is nothing to show.
+function renderMetaPanel() {
+  if (!metaPanelEl) return;
+  const meta = moveTree?.metadata || {};
+  const white = metaValue(meta.White);
+  const black = metaValue(meta.Black);
+  const fields = {
+    'meta-white-name': white,
+    'meta-white-elo': metaElo(meta.WhiteElo),
+    'meta-black-name': black,
+    'meta-black-elo': metaElo(meta.BlackElo),
+    'meta-result': metaValue(meta.Result),
+    'meta-date': formatMetaDate(meta.Date),
+    'meta-event': metaValue(meta.Event),
+    'meta-site': metaValue(meta.Site),
+    'meta-round': metaValue(meta.Round) ? `Round ${metaValue(meta.Round)}` : null,
+  };
+  for (const [id, text] of Object.entries(fields)) {
+    const node = document.getElementById(id);
+    node.textContent = text ?? '';
+    node.hidden = !text;
+  }
+  // A player row is shown only when the player's name is known.
+  document.getElementById('meta-white').hidden = !white;
+  document.getElementById('meta-black').hidden = !black;
+  const hasData = Object.values(fields).some(Boolean);
+  metaPanelEl.hidden = !(showPanel && hasData);
+}
+
 function setShowPanel(value) {
   showPanel = value;
   if (showPanelInput) {
@@ -1623,6 +1685,7 @@ function setShowPanel(value) {
   if (sideInfoPanelEl) {
     sideInfoPanelEl.hidden = !value;
   }
+  renderMetaPanel();
   if (value) ensureActiveMoveVisible();
   window.dispatchEvent(new Event('resize'));
 }

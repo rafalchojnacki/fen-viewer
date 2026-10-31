@@ -29,7 +29,7 @@ Location: the top section of the side panel (the former "Analysis coming soon" b
 Each line shows:
 
 - Primary row, left to right: best move (SAN), score in pawns from White's view with one decimal (`+0.3`; mates as `#5` / `-#3`), win/draw/loss bar (no text labels; hover for values), probability circles (1 to 5). Text is regular weight.
-- Small row: continuation (the rest of the Stockfish PV, in SAN, up to 7 plies, with move numbers before White moves only).
+- Small row: continuation (the rest of the Stockfish PV, in SAN, up to 6 plies, with move numbers before White moves only).
 
 Placeholders: shimmer blocks replace any element that has no data yet. WDL and circles show placeholders until Maia finishes, while engine scores stream in.
 

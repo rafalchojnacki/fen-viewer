@@ -22,7 +22,7 @@ import {
 
 const DOTS = 5;
 // Plies shown in the continuation line, after the best move.
-const CONTINUATION_PLIES = 7;
+const CONTINUATION_PLIES = 6;
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -67,7 +67,6 @@ export class EvalPanel {
     this.ratingList = doc.getElementById('eval-rating-list');
     this.section = doc.getElementById('eval-section');
     this.body = doc.getElementById('eval-body');
-    this.status = doc.getElementById('eval-status');
 
     this.settings = loadSettings();
     this.enabled = false;
@@ -75,7 +74,6 @@ export class EvalPanel {
     this.engine = null;
     this.runId = 0;
     this.view = null;
-    this.modelProgress = null;
 
     this.buildControls(doc);
     this.syncControls();
@@ -245,23 +243,17 @@ export class EvalPanel {
     this.render();
 
     try {
-      await loadMaia((loaded, total) => {
-        if (runId !== this.runId) return;
-        this.modelProgress = total ? Math.round((loaded / total) * 100) : null;
-        this.render();
-      });
+      await loadMaia();
       const moves = result.lines.map((line) => {
         const uci = line.pv[0];
         return { uci, childFen: uci ? applyUci(fen, uci) : null };
       });
       const scored = await scoreMoves({ fen, moves, rating });
       if (runId !== this.runId) return;
-      this.modelProgress = null;
-      this.view = { state: 'done', fen, lines: result.lines, scored };
+        this.view = { state: 'done', fen, lines: result.lines, scored };
     } catch (error) {
       if (runId !== this.runId) return;
-      this.modelProgress = null;
-      this.view = {
+        this.view = {
         state: 'done',
         fen,
         lines: result.lines,
@@ -281,26 +273,22 @@ export class EvalPanel {
 
     if (!this.enabled) {
       this.body.append(el('p', 'eval-empty', 'Evaluation is off. Press E to show it.'));
-      this.status.textContent = '';
       return;
     }
 
     if (!this.view || !this.view.fen) {
       this.renderPlaceholders();
-      this.status.textContent = '';
       return;
     }
 
     const { view } = this;
     if (view.state === 'error') {
       this.body.append(el('p', 'eval-empty eval-error', view.message));
-      this.status.textContent = '';
       return;
     }
 
     if (view.state === 'done' && view.lines.length === 0) {
       this.body.append(el('p', 'eval-empty', view.message));
-      this.status.textContent = '';
       return;
     }
 
@@ -318,15 +306,9 @@ export class EvalPanel {
       );
     }
 
-    // Only the Maia model download is reported; engine progress is shown by the panel itself.
-    this.status.textContent = view.state === 'scoring' ? this.scoringText() : '';
     if (view.message && view.state === 'done') {
-      this.status.textContent = view.message;
+      this.body.append(el('p', 'eval-empty eval-error', view.message));
     }
-  }
-
-  scoringText() {
-    return this.modelProgress !== null ? `Loading Maia3 model ${this.modelProgress}%` : 'Scoring with Maia3…';
   }
 
   renderPlaceholders() {

@@ -12,6 +12,7 @@
   --glyph-tint-7: #6aa8e0;
   --glyph-tint-22: #b08ae0;
   --side-panel-width: clamp(390px, 54vmin, 630px);
+  --meta-panel-width: clamp(240px, 32vmin, 360px);
   --glass-bg: rgba(40, 42, 50, 0.5);
   --glass-bg-strong: rgba(32, 34, 42, 0.68);
   --dropdown-solid: #2a2c33;
@@ -282,21 +283,104 @@ main {
 }
 
 .board-and-panel {
+  --right-eff: calc(var(--side-panel-width) + var(--board-panel-gap));
+  --left-eff: calc(var(--meta-panel-width) + var(--board-panel-gap));
   position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--board-panel-gap);
-  /* Keep the board on the viewport centre line while there is room for the
-     panel at its right. Once that would push the panel beyond the page
-     edge, shift the pair left only by the amount needed to keep it in view. */
+  /* Keep the board on the viewport centre line. The offset balances the left
+     (game information) and right (side) panels. Once the pair would extend
+     beyond the page edge, shift it only as far as needed to keep it in view. */
   left: min(
-    calc((var(--side-panel-width) + var(--board-panel-gap)) / 2),
-    calc(50vw - (var(--frame-size) + var(--board-panel-gap) + var(--side-panel-width)) / 2)
+    calc((var(--right-eff) - var(--left-eff)) / 2),
+    calc(50vw - (var(--frame-size) + var(--left-eff) + var(--right-eff)) / 2)
   );
 }
 
+.board-and-panel:has(.meta-panel[hidden]) {
+  --left-eff: 0px;
+}
+
 .board-and-panel:has(.side-info-panel[hidden]) {
+  --right-eff: 0px;
+  --left-eff: 0px;
   left: 0;
+}
+
+.meta-panel {
+  flex: none;
+  align-self: flex-start;
+  width: var(--meta-panel-width);
+  min-height: var(--frame-size);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  color: var(--text-main);
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  justify-content: flex-start;
+}
+
+.meta-panel[hidden],
+.meta-panel [hidden] {
+  display: none !important;
+}
+
+.meta-players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-line {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.meta-line-player {
+  font-size: 16px;
+  color: var(--text-main);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.meta-side {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  align-self: center;
+  border-radius: 50%;
+}
+
+.meta-side-white {
+  background-color: #f2f2f2;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.meta-side-black {
+  background-color: #0e0e0e;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.meta-elo {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.meta-result {
+  margin-top: 4px;
+  margin-bottom: 14px;
+  color: var(--text-main);
+}
+
+.meta-date {
+  margin-top: 0;
 }
 
 .board-column {
@@ -1609,7 +1693,7 @@ main {
   align-items: center;
   gap: 10px;
   min-height: 24px;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text-main);
 }
 
@@ -1675,14 +1759,6 @@ main {
   color: var(--text-dim);
   line-height: 1.4;
   overflow-wrap: anywhere;
-}
-
-.eval-status {
-  flex: none;
-  padding: 6px 12px;
-  font-size: 11px;
-  color: var(--text-dim);
-  min-height: 1.8em;
 }
 
 .eval-line-pending {
@@ -1756,7 +1832,7 @@ main {
 /* Divider between Evaluation (top) and Moves (bottom) */
 .sidebar-split {
   flex: none;
-  height: 10px;
+  height: 16px;
   position: relative;
   cursor: row-resize;
   touch-action: none;
@@ -1791,7 +1867,6 @@ main {
 }
 
 .analysis-section.collapsed .analysis-panel-body,
-.analysis-section.collapsed .eval-status,
 .analysis-section.collapsed .eval-settings {
   display: none;
 }

@@ -9,6 +9,17 @@
     <main>
       <div class="board-area">
         <div class="board-and-panel">
+          <aside id="meta-panel" class="meta-panel" aria-label="Game information" hidden>
+            <div class="meta-players">
+              <div id="meta-white" class="meta-line meta-line-player" hidden><span class="meta-side meta-side-white" aria-hidden="true"></span><span id="meta-white-name"></span><span id="meta-white-elo" class="meta-elo"></span></div>
+              <div id="meta-black" class="meta-line meta-line-player" hidden><span class="meta-side meta-side-black" aria-hidden="true"></span><span id="meta-black-name"></span><span id="meta-black-elo" class="meta-elo"></span></div>
+            </div>
+            <div id="meta-result" class="meta-line meta-result" hidden></div>
+            <div id="meta-date" class="meta-line meta-date" hidden></div>
+            <div id="meta-event" class="meta-line meta-event" hidden></div>
+            <div id="meta-round" class="meta-line meta-round" hidden></div>
+            <div id="meta-site" class="meta-line meta-site" hidden></div>
+          </aside>
           <div class="board-column">
             <div class="brand-watermark"><span>64 quarks</span></div>
             <div class="board-frame">
@@ -55,7 +66,6 @@
                 <div class="analysis-panel-body">
                   <div id="eval-body" class="eval-body"></div>
                 </div>
-                <div id="eval-status" class="eval-status" aria-live="polite"></div>
               </div>
               <div id="sidebar-split" class="sidebar-split" role="separator" aria-orientation="horizontal" aria-label="Resize Evaluation and Moves" aria-controls="eval-section" tabindex="0" title="Drag to resize (arrow keys work too)"></div>
               <div class="movies-section">
@@ -174,8 +184,8 @@
         </label>
         <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
           <span class="settings-item-label">
-            <span class="settings-item-title">Side panel</span>
-            <span class="settings-item-desc">Show the side panel</span>
+            <span class="settings-item-title">Side panels</span>
+            <span class="settings-item-desc">Show the side panels</span>
           </span>
           <input id="setting-show-panel" type="checkbox" checked />
           <span class="settings-switch" aria-hidden="true"></span>
