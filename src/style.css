@@ -3,6 +3,14 @@
 }
 
 :root {
+  --glyph-tint-1: #6fbf78;
+  --glyph-tint-2: #e0a050;
+  --glyph-tint-3: #4fc3d6;
+  --glyph-tint-4: #e26d6d;
+  --glyph-tint-5: #5fb7a4;
+  --glyph-tint-6: #d9c24a;
+  --glyph-tint-7: #6aa8e0;
+  --glyph-tint-22: #b08ae0;
   --side-panel-width: clamp(390px, 54vmin, 630px);
   --glass-bg: rgba(40, 42, 50, 0.5);
   --glass-bg-strong: rgba(32, 34, 42, 0.68);
@@ -83,6 +91,14 @@
 }
 
 :root[data-theme="birch"] {
+  --glyph-tint-1: #17612a;
+  --glyph-tint-2: #8a4a06;
+  --glyph-tint-3: #0b7080;
+  --glyph-tint-4: #b42323;
+  --glyph-tint-5: #17705f;
+  --glyph-tint-6: #7a5f00;
+  --glyph-tint-7: #1f5fb0;
+  --glyph-tint-22: #6a3fb0;
   --glass-bg: rgba(255, 255, 255, 0.55);
   --glass-bg-strong: rgba(255, 255, 255, 0.82);
   --glass-border: rgba(120, 100, 70, 0.24);
@@ -114,6 +130,14 @@
 }
 
 :root[data-theme="paper"] {
+  --glyph-tint-1: #1e7a32;
+  --glyph-tint-2: #a35a0a;
+  --glyph-tint-3: #0b7080;
+  --glyph-tint-4: #b42323;
+  --glyph-tint-5: #17705f;
+  --glyph-tint-6: #7a5f00;
+  --glyph-tint-7: #1f5fb0;
+  --glyph-tint-22: #6a3fb0;
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-bg-strong: rgba(255, 255, 255, 0.92);
   --glass-border: rgba(140, 140, 140, 0.35);
@@ -527,14 +551,14 @@ main {
 }
 
 /* Move glyph tint: colors the SAN and move glyph, and the selected highlight. */
-.move-ply[data-move-glyph="1"] { --move-tint: #6fbf78; }
-.move-ply[data-move-glyph="2"] { --move-tint: #e0a050; }
-.move-ply[data-move-glyph="3"] { --move-tint: #4fc3d6; }
-.move-ply[data-move-glyph="4"] { --move-tint: #e26d6d; }
-.move-ply[data-move-glyph="5"] { --move-tint: #5fb7a4; }
-.move-ply[data-move-glyph="6"] { --move-tint: #d9c24a; }
-.move-ply[data-move-glyph="7"] { --move-tint: #6aa8e0; }
-.move-ply[data-move-glyph="22"] { --move-tint: #b08ae0; }
+.move-ply[data-move-glyph="1"] { --move-tint: var(--glyph-tint-1); }
+.move-ply[data-move-glyph="2"] { --move-tint: var(--glyph-tint-2); }
+.move-ply[data-move-glyph="3"] { --move-tint: var(--glyph-tint-3); }
+.move-ply[data-move-glyph="4"] { --move-tint: var(--glyph-tint-4); }
+.move-ply[data-move-glyph="5"] { --move-tint: var(--glyph-tint-5); }
+.move-ply[data-move-glyph="6"] { --move-tint: var(--glyph-tint-6); }
+.move-ply[data-move-glyph="7"] { --move-tint: var(--glyph-tint-7); }
+.move-ply[data-move-glyph="22"] { --move-tint: var(--glyph-tint-22); }
 
 .move-ply[data-move-glyph] .move-san,
 .move-ply[data-move-glyph] .move-glyph {
