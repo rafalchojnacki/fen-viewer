@@ -1296,7 +1296,7 @@ function formatMoveToken(node, forceNumber) {
 // the other children of a main-line move are emitted right after that move.
 // Variation roots are not main children, so their siblings are not emitted
 // again inside the variation (that would recurse forever).
-function formatLine(first, parent, forceNumber = true, firstIsMain = true) {
+function formatLine(first, parent, forceNumber = true, firstIsMain = true, mainOf = mainChildOf) {
   const tokens = [];
   let node = first;
   let owner = parent;
@@ -1306,11 +1306,11 @@ function formatLine(first, parent, forceNumber = true, firstIsMain = true) {
     tokens.push(formatMoveToken(node, force));
     const alternatives = isMain ? owner.children.filter((child) => child.id !== node.id) : [];
     for (const alternative of alternatives) {
-      tokens.push(`(${formatLine(alternative, owner, true, false).join(' ')})`);
+      tokens.push(`(${formatLine(alternative, owner, true, false, mainOf).join(' ')})`);
     }
     force = alternatives.length > 0;
     owner = node;
-    node = mainChildOf(node);
+    node = mainOf(node);
     isMain = true;
   }
   return tokens;
@@ -1327,9 +1327,39 @@ function buildPgn() {
   return headers.length ? `${headers.join('\n')}\n\n${body}` : body;
 }
 
+// Lichess export: the current position becomes the starting position
+// ([SetUp]/[FEN] makes Lichess show it as "From Position"), and the moves that
+// follow it are included. Moves played before it are not part of the export.
+// Lichess export: the whole game, with the selected line as its main line so the
+// current position is reachable. The current position is marked by the URL
+// fragment (#ply), which Lichess reads as the starting ply of the analysis.
+function buildLichessExport() {
+  const path = [];
+  for (let node = currentNode(); node && node.id !== moveTree.id; node = parentOf(node)) {
+    path.unshift(node);
+  }
+  const onPath = new Set(path.map((node) => node.id));
+  const mainOf = (node) => node.children.find((child) => onPath.has(child.id)) || mainChildOf(node);
+
+  const headers = [];
+  if (moveTree.fen !== START_FEN) {
+    headers.push('[SetUp "1"]', `[FEN "${moveTree.fen}"]`);
+  }
+  const first = mainOf(moveTree);
+  const movetext = first ? formatLine(first, moveTree, true, true, mainOf).join(' ') : '';
+  const body = `${movetext} *`.trim();
+  return {
+    pgn: headers.length ? `${headers.join('\n')}\n\n${body}` : body,
+    ply: path.length,
+  };
+}
+
 lichessBtn.addEventListener('click', () => {
   if (lichessBtn.disabled) return;
-  window.open(`https://lichess.org/analysis/pgn/${encodeURIComponent(buildPgn())}`, '_blank');
+  const { pgn, ply } = buildLichessExport();
+  const fragment = ply > 0 ? `#${ply}` : '';
+  const url = `https://lichess.org/analysis/pgn/${encodeURIComponent(pgn)}?color=${orientation()}${fragment}`;
+  window.open(url, '_blank');
 });
 
 const copyPgnBtn = document.getElementById('copy-pgn-btn');
