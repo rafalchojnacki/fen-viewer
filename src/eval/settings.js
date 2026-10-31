@@ -1,4 +1,4 @@
-export const LINE_COUNTS = [1, 2, 3, 4, 5];
+export const LINE_COUNTS = [1, 2, 3, 4, 5, 6, 7];
 
 export const QUALITY_LEVELS = {
   fast: { label: 'Fast', nodes: 1_000_000 },
