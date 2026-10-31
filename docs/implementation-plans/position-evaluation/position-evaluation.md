@@ -1,0 +1,23 @@
+Chess position evaluation panel:
+- Buttons in the top right corner of the panel:
+    - It should possible to enable/disable it using a toggle switch
+    - There should be also Settings button to configure:
+        - Number of lines to show: 1-5
+        - Analysis quality:
+            - Fast - 1 milion nodes
+            - Standard - 10 milion nodes
+        - Peer raiting: selected from a drop down menu with options as in Maia3 strength levels (600 to 2600)
+- Evaluation of the position
+    - if evaluation was completed for each line there should be the following information:
+        - Position evaluation line (larger font)
+            - Best move suggested by the engine
+            - Evaluation score (in centipawns) as a number and in color. The color scheme should be the same as in move list for glyphs (the same color scheme).
+            - Visualized (for example using, 1-5 circles) probability of playing the move by chess master as caculated by Maia3 for the given position for raiting range from 2200
+            - Peer score: win-draw-loss from white's perspective percentage for the suggested move based on Maia3's analysis for raiting selected in the settings displayed as single bar (white-gray-black)
+        - Continuation line (smaller font)
+            - Best continuation according to the Stockfish engine
+    - if evaluation is not yet done
+        - then this should be indicated by slightly animated, modern placeholders for all the evaluation elements 
+- It should be possible to enable/disable the evaluation panel using a key "E"
+- When page is loaded then evaluation should be always disabled
+- All evaluation should happen in a browser (no server side evaluation)

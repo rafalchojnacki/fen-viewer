@@ -14,6 +14,7 @@
   --side-panel-width: clamp(390px, 54vmin, 630px);
   --glass-bg: rgba(40, 42, 50, 0.5);
   --glass-bg-strong: rgba(32, 34, 42, 0.68);
+  --dropdown-solid: #2a2c33;
   --glass-border: rgba(255, 255, 255, 0.09);
   --glass-highlight: rgba(255, 255, 255, 0.06);
   --text-main: #eee;
@@ -91,6 +92,7 @@
 }
 
 :root[data-theme="birch"] {
+  --dropdown-solid: #f6f1e7;
   --glyph-tint-1: #17612a;
   --glyph-tint-2: #8a4a06;
   --glyph-tint-3: #0b7080;
@@ -130,6 +132,7 @@
 }
 
 :root[data-theme="paper"] {
+  --dropdown-solid: #fbfbfb;
   --glyph-tint-1: #1e7a32;
   --glyph-tint-2: #a35a0a;
   --glyph-tint-3: #0b7080;
@@ -351,7 +354,7 @@ main {
 }
 
 .analysis-section {
-  flex: 0 0 40%;
+  flex: none;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -360,7 +363,7 @@ main {
 
 .movies-section {
   position: relative;
-  flex: 1 1 60%;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -1329,4 +1332,471 @@ main {
     align-self: stretch;
     width: 100%;
   }
+}
+
+/* Evaluation panel */
+.eval-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 6px;
+}
+
+.eval-title {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.eval-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eval-toggle {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.eval-toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.eval-switch {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-dim) 35%, transparent);
+  transition: background 0.15s ease;
+}
+
+.eval-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-main);
+  transition: transform 0.15s ease;
+}
+
+.eval-toggle input:checked + .eval-switch {
+  background: var(--accent);
+}
+
+.eval-toggle input:checked + .eval-switch::after {
+  transform: translateX(16px);
+}
+
+.eval-toggle input:focus-visible + .eval-switch {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.eval-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.eval-icon-btn:hover,
+.eval-icon-btn[aria-expanded="true"] {
+  color: var(--text-main);
+  background: var(--hover-bg);
+}
+
+.eval-icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.eval-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.eval-settings {
+  flex: none;
+  display: grid;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-dim) 20%, transparent);
+}
+
+.eval-settings[hidden] {
+  display: none;
+}
+
+.eval-field {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eval-seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text-main) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-dim) 25%, transparent);
+  justify-self: start;
+}
+
+.eval-seg-btn {
+  min-width: 30px;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.eval-seg-btn:hover {
+  color: var(--text-main);
+  background: var(--hover-bg);
+}
+
+.eval-seg-btn[aria-pressed="true"] {
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.eval-seg-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.eval-dropdown {
+  position: relative;
+  justify-self: stretch;
+}
+
+.eval-dd-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--text-main) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-dim) 35%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.eval-dd-btn:hover,
+.eval-dd-btn[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.eval-dd-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.eval-dd-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+}
+
+.eval-dd-btn[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.eval-dd-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 180px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--dropdown-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.eval-dd-list[hidden] {
+  display: none;
+}
+
+.eval-dd-item {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.eval-dd-item:hover {
+  color: var(--text-main);
+  background: var(--hover-bg);
+}
+
+.eval-dd-item.selected {
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.eval-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eval-empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.eval-error {
+  color: var(--glyph-tint-4);
+}
+
+.eval-empty-inline {
+  color: var(--text-dim);
+}
+
+.eval-line {
+  --eval-tint: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text-main) 4%, transparent);
+}
+
+.eval-primary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+  font-size: 16px;
+  color: var(--text-main);
+}
+
+.eval-move {
+  min-width: 4.5em;
+}
+
+.eval-score {
+  min-width: 4.5em;
+  color: var(--eval-tint);
+}
+
+.eval-circles {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.eval-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--text-dim) 60%, transparent);
+}
+
+.eval-dot-on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.eval-wdl-wrap {
+  flex: none;
+  width: 96px;
+}
+
+.eval-wdl {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--text-dim) 45%, transparent);
+}
+
+.eval-wdl span {
+  display: block;
+  height: 100%;
+}
+
+.eval-wdl-w {
+  background: #f2f2f2;
+}
+
+.eval-wdl-d {
+  background: #8c8c92;
+}
+
+.eval-wdl-b {
+  background: #1c1c20;
+}
+
+.eval-continuation {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.eval-status {
+  flex: none;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  min-height: 1.8em;
+}
+
+.eval-line-pending {
+  background: transparent;
+}
+
+.eval-skeleton {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--text-main) 6%, transparent) 0%,
+    color-mix(in srgb, var(--text-main) 16%, transparent) 50%,
+    color-mix(in srgb, var(--text-main) 6%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: eval-shimmer 1.4s ease-in-out infinite;
+}
+
+.eval-skeleton-move {
+  width: 3.5em;
+  height: 14px;
+}
+
+.eval-skeleton-score {
+  width: 3.5em;
+  height: 14px;
+}
+
+.eval-skeleton-circles {
+  width: 70px;
+  height: 10px;
+  margin-left: auto;
+}
+
+.eval-skeleton-wdl {
+  display: block;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.eval-primary .eval-skeleton-wdl {
+  display: inline-block;
+  flex: none;
+  width: 96px;
+  height: 10px;
+}
+
+.eval-skeleton-cont {
+  display: block;
+  width: 80%;
+  height: 10px;
+}
+
+@keyframes eval-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eval-skeleton {
+    animation: none;
+  }
+}
+
+/* Divider between Evaluation (top) and Moves (bottom) */
+.sidebar-split {
+  flex: none;
+  height: 10px;
+  position: relative;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.sidebar-split::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text-dim) 30%, transparent);
+  transition: background 0.15s ease;
+}
+
+.sidebar-split:hover::after,
+.sidebar-split:focus-visible::after,
+.sidebar-split.dragging::after {
+  background: var(--accent);
+}
+
+.sidebar-split:focus-visible {
+  outline: none;
+}
+
+/* Evaluation collapsed to its header while evaluation is off */
+.analysis-section.collapsed {
+  flex: none !important;
+  height: auto;
+}
+
+.analysis-section.collapsed .analysis-panel-body,
+.analysis-section.collapsed .eval-status,
+.analysis-section.collapsed .eval-settings {
+  display: none;
+}
+
+.analysis-section.collapsed + .sidebar-split {
+  display: none;
 }

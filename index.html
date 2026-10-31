@@ -22,11 +22,42 @@
           </div>
           <aside class="side-info-panel">
             <div class="side-inner-panel">
-              <div class="analysis-section">
-                <div class="analysis-panel-body">
-                  <div class="analysis-placeholder">Analysis coming soon</div>
+              <div class="analysis-section" id="eval-section">
+                <div class="eval-header">
+                  <span class="eval-title">Evaluation</span>
+                  <div class="eval-controls">
+                    <label class="eval-toggle" title="Show evaluation (E)">
+                      <input id="eval-toggle" type="checkbox" role="switch" aria-label="Show evaluation" />
+                      <span class="eval-switch" aria-hidden="true"></span>
+                    </label>
+                    <button id="eval-settings-btn" type="button" class="eval-icon-btn" title="Evaluation settings" aria-label="Evaluation settings" aria-expanded="false" aria-controls="eval-settings">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
+                <div id="eval-settings" class="eval-settings" hidden>
+                  <div class="eval-field"><span>Lines</span><div id="eval-lines" class="eval-seg" role="group" aria-label="Number of lines"></div></div>
+                  <div class="eval-field"><span>Analysis</span><div id="eval-quality" class="eval-seg" role="group" aria-label="Analysis quality"></div></div>
+                  <div class="eval-field">
+                    <span>Peer rating</span>
+                    <div class="eval-dropdown">
+                      <button id="eval-rating-btn" type="button" class="eval-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="eval-rating-list">
+                        <span id="eval-rating-label"></span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" /></svg>
+                      </button>
+                      <ul id="eval-rating-list" class="eval-dd-list" role="listbox" aria-label="Peer rating" hidden></ul>
+                    </div>
+                  </div>
+                </div>
+                <div class="analysis-panel-body">
+                  <div id="eval-body" class="eval-body"></div>
+                </div>
+                <div id="eval-status" class="eval-status" aria-live="polite"></div>
               </div>
+              <div id="sidebar-split" class="sidebar-split" role="separator" aria-orientation="horizontal" aria-label="Resize Evaluation and Moves" aria-controls="eval-section" tabindex="0" title="Drag to resize (arrow keys work too)"></div>
               <div class="movies-section">
                 <div class="movies-panel-body">
                   <div id="move-list" class="move-list" aria-label="Move list"></div>

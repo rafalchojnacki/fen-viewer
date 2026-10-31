@@ -7,6 +7,8 @@ import '@fontsource/geist-mono/600.css';
 import '@fontsource/geist-mono/700.css';
 import './theme.css';
 import './style.css';
+import { evalPanel } from './eval/panel.js';
+import { initSidebarSplit } from './sidebar-split.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -387,6 +389,7 @@ function refresh() {
   renderMoveList();
   renderMoveSelector();
   ensureActiveMoveVisible();
+  evalPanel.setFen(currentFen);
   saveState();
 }
 
@@ -1290,6 +1293,12 @@ document.addEventListener('keydown', (event) => {
     }
   }
 
+  if (event.key.toLowerCase() === 'e' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+    if (isEditableTarget(event.target)) return;
+    event.preventDefault();
+    if (!event.repeat) evalPanel.toggleEnabled();
+    return;
+  }
   if (event.key.toLowerCase() === 'f') {
     flipped = !flipped;
     refresh();
@@ -1679,6 +1688,8 @@ document.addEventListener('click', (event) => {
 });
 
 renderTimer();
+
+initSidebarSplit();
 
 function loadState() {
   let saved;
