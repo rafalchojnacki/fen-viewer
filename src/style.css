@@ -11,7 +11,7 @@
   --glyph-tint-6: #d9c24a;
   --glyph-tint-7: #6aa8e0;
   --glyph-tint-22: #b08ae0;
-  --side-panel-width: clamp(390px, 54vmin, 630px);
+  --side-panel-width: clamp(426px, calc(54vmin + 36px), 666px);
   --meta-panel-width: clamp(240px, 32vmin, 360px);
   --glass-bg: rgba(40, 42, 50, 0.5);
   --glass-bg-strong: rgba(32, 34, 42, 0.68);
@@ -250,7 +250,7 @@ main {
   --frame-size: calc(var(--board-size) + var(--frame-extra));
   --fen-row-height: 40px;
   --board-column-gap: 12px;
-  --board-panel-gap: 72px;
+  --board-panel-gap: 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -406,7 +406,7 @@ main {
   flex-direction: column;
   justify-content: center;
   overflow: visible;
-  padding-right: var(--board-panel-gap);
+  padding-right: 72px;
   border: none;
   border-radius: 0;
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -463,7 +463,7 @@ main {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 10px 12px;
+  padding: 24px 12px 10px;
 }
 
 .move-selector {
@@ -1756,7 +1756,7 @@ main {
 
 .eval-continuation {
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text-main);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
