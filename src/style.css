@@ -355,6 +355,47 @@ main {
   padding: 10px 12px;
 }
 
+.move-selector {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  border-top: 1px solid color-mix(in srgb, var(--text-dim) 20%, transparent);
+  scrollbar-width: thin;
+}
+
+.move-selector[hidden] {
+  display: none;
+}
+
+.move-choice {
+  flex: none;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text-dim) 30%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.move-choice:hover {
+  background: var(--hover-bg);
+}
+
+.move-choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.move-choice.selected {
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
 .analysis-panel-body {
   flex: 1;
   min-height: 0;
@@ -368,11 +409,12 @@ main {
 }
 
 .move-list {
+  --move-number-width: 4.5ch;
+  --move-cell-width: 8ch;
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  align-items: center;
-  gap: 4px 2px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   min-height: 100%;
 }
 
@@ -381,25 +423,39 @@ main {
   font-size: 13px;
 }
 
-.move-entry {
-  display: inline-flex;
+.move-line {
+  display: grid;
+  grid-template-columns: var(--move-number-width) var(--move-cell-width) var(--move-cell-width);
   align-items: center;
-  gap: 2px;
+  column-gap: 2px;
   white-space: nowrap;
 }
 
-.move-number {
-  color: var(--text-dim);
-  font-size: 14px;
+.variation-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid color-mix(in srgb, var(--text-dim) 35%, transparent);
 }
 
-.variation-bracket {
+.move-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.move-number {
+  padding-right: 2px;
   color: var(--text-dim);
   font-size: 14px;
 }
 
 .move-ply {
-  padding: 2px 5px;
+  width: 100%;
+  padding: 2px 4px;
   font: inherit;
   font-size: 14px;
   text-align: left;
@@ -417,7 +473,6 @@ main {
 .move-ply.active {
   color: var(--text-main);
   background: color-mix(in srgb, var(--accent) 24%, transparent);
-  font-weight: 600;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 

@@ -27,6 +27,7 @@ const navPrev = document.getElementById('nav-prev');
 const navNext = document.getElementById('nav-next');
 const navLast = document.getElementById('nav-last');
 const moveList = document.getElementById('move-list');
+const moveSelector = document.getElementById('move-selector');
 const moveContextMenu = document.getElementById('move-context-menu');
 const deleteDialog = document.getElementById('delete-dialog');
 const deleteDialogMessage = document.getElementById('delete-dialog-message');
@@ -46,6 +47,10 @@ let flipped = false;
 let game = null;
 let moveTree = createRoot(START_FEN);
 let currentNodeId = moveTree.id;
+let lastScrolledNodeId = null;
+let selectionParentId = null;
+let selectionMainChildId = null;
+let selectedChildId = null;
 let nodeById = new Map();
 let parentById = new Map();
 let nextNodeId = 1;
@@ -101,6 +106,33 @@ function parentOf(node) {
 
 function mainChildOf(node) {
   return node.children.find((child) => child.id === node.mainChildId) || null;
+}
+
+function orderedChildren(node) {
+  const main = mainChildOf(node);
+  if (!main) return [...node.children];
+  return [main, ...node.children.filter((child) => child.id !== main.id)];
+}
+
+function resetMoveSelection() {
+  selectionParentId = null;
+  selectionMainChildId = null;
+  selectedChildId = null;
+}
+
+function syncMoveSelection() {
+  const node = currentNode();
+  const main = mainChildOf(node);
+  const defaultChildId = main ? main.id : node.children[0]?.id || null;
+
+  if (selectionParentId !== node.id || selectionMainChildId !== node.mainChildId) {
+    selectionParentId = node.id;
+    selectionMainChildId = node.mainChildId;
+    selectedChildId = defaultChildId;
+  }
+  if (!node.children.some((child) => child.id === selectedChildId)) {
+    selectedChildId = defaultChildId;
+  }
 }
 
 function newNodeId() {
@@ -210,6 +242,7 @@ function saveState() {
 function refresh() {
   const entry = currentNode();
   currentFen = entry.fen;
+  syncMoveSelection();
   const ori = orientation();
   const turn = turnColor(currentFen);
   ground.set({
@@ -229,10 +262,48 @@ function refresh() {
   setTurn(turn === 'white' ? 'w' : 'b');
   navFirst.disabled = entry.id === moveTree.id;
   navPrev.disabled = entry.id === moveTree.id;
-  navNext.disabled = !mainChildOf(entry);
+  navNext.disabled = !entry.children.length;
   navLast.disabled = !mainChildOf(entry);
   renderMoveList();
+  renderMoveSelector();
+  ensureActiveMoveVisible();
   saveState();
+}
+
+function ensureActiveMoveVisible() {
+  if (!moveList || lastScrolledNodeId === currentNodeId) return;
+
+  const container = moveList.closest('.movies-panel-body');
+  if (!container || !container.clientHeight) return;
+  lastScrolledNodeId = currentNodeId;
+
+  const active = moveList.querySelector('.move-ply.active');
+  if (!active) {
+    container.scrollTop = 0;
+    container.scrollLeft = 0;
+    return;
+  }
+
+  const line = active.closest('.move-line') || active;
+  const lineRect = line.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const margin = 8;
+  const top = containerRect.top + margin;
+  const bottom = containerRect.bottom - margin;
+  const left = containerRect.left + margin;
+  const right = containerRect.right - margin;
+
+  if (lineRect.top < top) {
+    container.scrollTop -= top - lineRect.top;
+  } else if (lineRect.bottom > bottom) {
+    container.scrollTop += lineRect.bottom - bottom;
+  }
+
+  if (lineRect.left < left) {
+    container.scrollLeft -= left - lineRect.left;
+  } else if (lineRect.right > right) {
+    container.scrollLeft += lineRect.right - right;
+  }
 }
 
 function createMoveButton(entry) {
@@ -257,45 +328,132 @@ function renderMoveList() {
     return;
   }
 
-  const moves = document.createDocumentFragment();
-  const appendVariations = (parent) => {
-    parent.children
-      .filter((child) => child.id !== parent.mainChildId)
-      .forEach((variation) => {
-        const open = document.createElement('span');
-        open.className = 'variation-bracket';
-        open.textContent = '(';
-        moves.appendChild(open);
-        appendLine(variation);
-        const close = document.createElement('span');
-        close.className = 'variation-bracket';
-        close.textContent = ')';
-        moves.appendChild(close);
-      });
+  const createLine = () => {
+    const line = document.createElement('div');
+    line.className = 'move-line';
+    const number = document.createElement('span');
+    number.className = 'move-number';
+    const white = document.createElement('span');
+    white.className = 'move-cell';
+    const black = document.createElement('span');
+    black.className = 'move-cell';
+    line.append(number, white, black);
+    return { el: line, number, white, black, started: false };
   };
-  const appendLine = (node, context = { previousMoveNumber: null }) => {
-    const moveEntry = document.createElement('span');
-    moveEntry.className = 'move-entry';
-    if (node.color === 'w' || node.moveNumber !== context.previousMoveNumber) {
-      const number = document.createElement('span');
-      number.className = 'move-number';
-      number.textContent = `${node.moveNumber}${node.color === 'w' ? '.' : '...'}`;
-      moveEntry.appendChild(number);
+
+  const createVariationGroup = () => {
+    const group = document.createElement('div');
+    group.className = 'variation-group';
+    return group;
+  };
+
+  const appendMove = (line, node) => {
+    if (!line.started) {
+      line.number.textContent = `${node.moveNumber}${node.color === 'w' ? '.' : '...'}`;
+      line.started = true;
     }
-    moveEntry.appendChild(createMoveButton(node));
-    moves.appendChild(moveEntry);
-    context.previousMoveNumber = node.moveNumber;
-
-    appendVariations(node);
-    const main = mainChildOf(node);
-    if (main) appendLine(main, context);
+    const cell = node.color === 'w' ? line.white : line.black;
+    cell.replaceChildren(createMoveButton(node));
   };
 
-  appendVariations(moveTree);
+  const renderSequence = (startNode, initialVariations = []) => {
+    const fragment = document.createDocumentFragment();
+    let line = null;
+    let lineMoveNumber = null;
+    let afterRow = [...initialVariations];
+    let carried = [];
+
+    const appendVariationGroups = (variations) => {
+      variations.forEach((variation) => {
+        const group = createVariationGroup();
+        group.appendChild(renderSequence(variation));
+        fragment.appendChild(group);
+      });
+    };
+
+    const flushRound = () => {
+      if (!line) return;
+      fragment.appendChild(line.el);
+      appendVariationGroups(afterRow);
+      line = null;
+      lineMoveNumber = null;
+      afterRow = carried;
+      carried = [];
+    };
+
+    let node = startNode;
+    while (node) {
+      if (!line || node.color === 'w' || node.moveNumber !== lineMoveNumber) {
+        flushRound();
+        line = createLine();
+        lineMoveNumber = node.moveNumber;
+      }
+
+      appendMove(line, node);
+      const sideVariations = node.children.filter(
+        (child) => child.id !== node.mainChildId,
+      );
+      if (node.color === 'w') {
+        afterRow.push(...sideVariations);
+      } else {
+        carried.push(...sideVariations);
+      }
+
+      node = mainChildOf(node);
+      if (!node || node.color === 'w') flushRound();
+    }
+    flushRound();
+    appendVariationGroups(afterRow);
+    return fragment;
+  };
+
+  const moves = document.createDocumentFragment();
+  const rootVariations = moveTree.children.filter(
+    (child) => child.id !== moveTree.mainChildId,
+  );
   const main = mainChildOf(moveTree);
-  if (main) appendLine(main);
+  if (main) {
+    moves.appendChild(renderSequence(main, rootVariations));
+  } else {
+    rootVariations.forEach((variation) => {
+      const group = createVariationGroup();
+      group.appendChild(renderSequence(variation));
+      moves.appendChild(group);
+    });
+  }
 
   moveList.replaceChildren(moves);
+}
+
+function renderMoveSelector() {
+  if (!moveSelector) return;
+
+  const node = currentNode();
+  const candidates = orderedChildren(node);
+  if (candidates.length <= 1) {
+    moveSelector.hidden = true;
+    moveSelector.replaceChildren();
+    return;
+  }
+
+  moveSelector.hidden = false;
+  moveSelector.replaceChildren(
+    ...candidates.map((child) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `move-choice${child.id === selectedChildId ? ' selected' : ''}`;
+      button.textContent = child.san;
+      button.title = child.id === node.mainChildId
+        ? `Main line: ${child.san}`
+        : `Variation: ${child.san}`;
+      button.setAttribute('aria-pressed', String(child.id === selectedChildId));
+      button.addEventListener('click', () => goto(child.id));
+      return button;
+    }),
+  );
+
+  const selected = moveSelector.querySelector('.move-choice.selected');
+  selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
 function goto(id) {
@@ -307,14 +465,30 @@ function goto(id) {
   refresh();
 }
 
+function cycleMoveSelection(direction) {
+  const candidates = orderedChildren(currentNode());
+  if (candidates.length <= 1) return;
+
+  const index = candidates.findIndex((child) => child.id === selectedChildId);
+  const start = index < 0 ? 0 : index;
+  selectedChildId = candidates[(start + direction + candidates.length) % candidates.length].id;
+  renderMoveSelector();
+}
+
+function gotoSelectedChild() {
+  const candidates = orderedChildren(currentNode());
+  if (!candidates.length) return;
+  const target = candidates.find((child) => child.id === selectedChildId) || candidates[0];
+  goto(target.id);
+}
+
 navFirst.addEventListener('click', () => goto(moveTree.id));
 navPrev.addEventListener('click', () => {
   const parent = parentOf(currentNode());
   if (parent) goto(parent.id);
 });
 navNext.addEventListener('click', () => {
-  const next = mainChildOf(currentNode());
-  if (next) goto(next.id);
+  gotoSelectedChild();
 });
 navLast.addEventListener('click', () => {
   let last = currentNode();
@@ -548,8 +722,10 @@ function importFen(fen) {
   flipped = color === 'b';
   moveTree = createRoot(trimmed);
   currentNodeId = moveTree.id;
+  lastScrolledNodeId = null;
   nextNodeId = 1;
   reindexTree();
+  resetMoveSelection();
   refresh();
   return true;
 }
@@ -596,11 +772,13 @@ function importPgn(pgn) {
 
     moveTree = tree;
     currentNodeId = parent.id;
+    lastScrolledNodeId = null;
     currentFen = parent.fen;
     game = replay;
     flipped = rootFen.split(/\s+/)[1] === 'b';
     nextNodeId = importedNodeId;
     reindexTree();
+    resetMoveSelection();
     refresh();
     return true;
   } catch {
@@ -777,8 +955,13 @@ document.addEventListener('keydown', (event) => {
       if (parent) goto(parent.id);
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
-      const next = mainChildOf(currentNode());
-      if (next) goto(next.id);
+      gotoSelectedChild();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      cycleMoveSelection(-1);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      cycleMoveSelection(1);
     }
   }
 });
@@ -989,6 +1172,7 @@ function setShowPanel(value) {
   if (sideInfoPanelEl) {
     sideInfoPanelEl.hidden = !value;
   }
+  if (value) ensureActiveMoveVisible();
   window.dispatchEvent(new Event('resize'));
 }
 
@@ -1069,6 +1253,7 @@ function loadState() {
     currentNodeId = legacyPath[Math.max(0, Math.min(legacyCursor, legacyPath.length - 1))].id;
   }
 
+  resetMoveSelection();
   currentFen = currentNode().fen;
   game = makeGame(currentFen);
   if (!game) return false;
