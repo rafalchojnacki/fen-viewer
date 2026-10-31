@@ -45,7 +45,6 @@ const importInput = document.getElementById('import-input');
 const importError = document.getElementById('import-error');
 const importCancel = document.getElementById('import-cancel');
 const importConfirm = document.getElementById('import-confirm');
-const lichessBtn = document.getElementById('lichess-btn');
 const boardEl = document.getElementById('board');
 const moveIndicator = document.getElementById('move-indicator');
 const coordsFilesTop = document.getElementById('coords-files-top');
@@ -1384,37 +1383,6 @@ function buildPgn() {
   const movetext = main ? formatLine(main, moveTree).join(' ') : '';
   return assemblePgn(lines, movetext, termination);
 }
-
-// Lichess export: the current position becomes the starting position
-// ([SetUp]/[FEN] makes Lichess show it as "From Position"), and the moves that
-// follow it are included. Moves played before it are not part of the export.
-// Lichess export: the whole game, with the selected line as its main line so the
-// current position is reachable. The current position is marked by the URL
-// fragment (#ply), which Lichess reads as the starting ply of the analysis.
-function buildLichessExport() {
-  const path = [];
-  for (let node = currentNode(); node && node.id !== moveTree.id; node = parentOf(node)) {
-    path.unshift(node);
-  }
-  const onPath = new Set(path.map((node) => node.id));
-  const mainOf = (node) => node.children.find((child) => onPath.has(child.id)) || mainChildOf(node);
-
-  const { lines, termination } = pgnHeaderLines(moveTree);
-  const first = mainOf(moveTree);
-  const movetext = first ? formatLine(first, moveTree, true, true, mainOf).join(' ') : '';
-  return {
-    pgn: assemblePgn(lines, movetext, termination),
-    ply: path.length,
-  };
-}
-
-lichessBtn.addEventListener('click', () => {
-  if (lichessBtn.disabled) return;
-  const { pgn, ply } = buildLichessExport();
-  const fragment = ply > 0 ? `#${ply}` : '';
-  const url = `https://lichess.org/analysis/pgn/${encodeURIComponent(pgn)}?color=${orientation()}${fragment}`;
-  window.open(url, '_blank');
-});
 
 const copyPgnBtn = document.getElementById('copy-pgn-btn');
 const downloadPgnBtn = document.getElementById('download-pgn-btn');

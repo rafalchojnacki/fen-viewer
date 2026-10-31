@@ -833,8 +833,7 @@ main {
 
 #import-btn svg,
 #copy-pgn-btn svg,
-#download-pgn-btn svg,
-#lichess-btn svg {
+#download-pgn-btn svg {
   width: 18px;
   height: 18px;
 }
