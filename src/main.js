@@ -4,10 +4,38 @@ import '@lichess-org/chessground/assets/chessground.base.css';
 import '@fontsource/geist-mono/400.css';
 import '@fontsource/geist-mono/500.css';
 import '@fontsource/geist-mono/600.css';
+import '@fontsource/geist-mono/700.css';
 import './theme.css';
 import './style.css';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+const MOVE_GLYPHS = [
+  { id: 1, symbol: '!', name: 'Good move' },
+  { id: 2, symbol: '?', name: 'Mistake' },
+  { id: 3, symbol: '!!', name: 'Brilliant move' },
+  { id: 4, symbol: '??', name: 'Blunder' },
+  { id: 5, symbol: '!?', name: 'Interesting move' },
+  { id: 6, symbol: '?!', name: 'Dubious move' },
+  { id: 7, symbol: '□', name: 'Only move' },
+  { id: 22, symbol: '⨀', name: 'Zugzwang' },
+];
+
+const POSITION_GLYPHS = [
+  { id: 10, symbol: '=', name: 'Equal position' },
+  { id: 13, symbol: '∞', name: 'Unclear position' },
+  { id: 14, symbol: '⩲', name: 'White is slightly better' },
+  { id: 15, symbol: '⩱', name: 'Black is slightly better' },
+  { id: 16, symbol: '±', name: 'White is better' },
+  { id: 17, symbol: '∓', name: 'Black is better' },
+  { id: 18, symbol: '+−', name: 'White is winning' },
+  { id: 19, symbol: '−+', name: 'Black is winning' },
+];
+
+const MOVE_GLYPH_BY_ID = new Map(MOVE_GLYPHS.map((glyph) => [glyph.id, glyph]));
+const POSITION_GLYPH_BY_ID = new Map(POSITION_GLYPHS.map((glyph) => [glyph.id, glyph]));
+const MOVE_GLYPH_IDS = MOVE_GLYPHS.map((glyph) => glyph.id);
+const POSITION_GLYPH_IDS = POSITION_GLYPHS.map((glyph) => glyph.id);
 
 const importBtn = document.getElementById('import-btn');
 const importDialog = document.getElementById('import-dialog');
@@ -76,15 +104,31 @@ function createRoot(fen) {
     promotion: null,
     moveNumber: null,
     color: null,
+    moveGlyph: null,
+    positionGlyph: null,
+    engineEval: null,
     children: [],
     mainChildId: null,
   };
+}
+
+function isValidEngineEval(engineEval) {
+  if (!engineEval || (engineEval.type !== 'cp' && engineEval.type !== 'mate')) return false;
+  if (typeof engineEval.value !== 'number' || !Number.isFinite(engineEval.value)) return false;
+  return engineEval.type !== 'mate' || Number.isInteger(engineEval.value);
+}
+
+function normalizeAnnotations(node) {
+  if (!MOVE_GLYPH_BY_ID.has(node.moveGlyph)) node.moveGlyph = null;
+  if (!POSITION_GLYPH_BY_ID.has(node.positionGlyph)) node.positionGlyph = null;
+  if (!isValidEngineEval(node.engineEval)) node.engineEval = null;
 }
 
 function reindexTree() {
   nodeById = new Map();
   parentById = new Map();
   const visit = (node, parent = null) => {
+    normalizeAnnotations(node);
     nodeById.set(node.id, node);
     if (parent) parentById.set(node.id, parent.id);
     if (!Array.isArray(node.children)) node.children = [];
@@ -163,6 +207,28 @@ function span(text) {
   const el = document.createElement('span');
   el.textContent = text;
   return el;
+}
+
+function formatEngineEval(engineEval) {
+  if (!isValidEngineEval(engineEval)) return '';
+  if (engineEval.type === 'mate') {
+    return `#${engineEval.value}`;
+  }
+  return `${engineEval.value > 0 ? '+' : ''}${engineEval.value.toFixed(2)}`;
+}
+
+function parseEngineEval(comment) {
+  if (!comment) return null;
+  const match = /\[%eval\s+([^\]]+)\]/i.exec(comment);
+  if (!match) return null;
+  const raw = match[1].trim();
+  if (raw.startsWith('#')) {
+    const mate = Number(raw.slice(1));
+    return Number.isInteger(mate) ? { type: 'mate', value: mate } : null;
+  }
+  if (!/^[+-]?\d+(?:\.\d+)?$/.test(raw)) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? { type: 'cp', value } : null;
 }
 
 function renderCoords(orientation) {
@@ -312,11 +378,87 @@ function createMoveButton(entry) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `move-ply${entry.id === currentNodeId ? ' active' : ''}`;
-  button.textContent = entry.san;
-  button.setAttribute('aria-label', `Move ${entry.moveNumber}${entry.color === 'w' ? ', White' : ', Black'}: ${entry.san}`);
+  if (MOVE_GLYPH_BY_ID.has(entry.moveGlyph)) {
+    button.dataset.moveGlyph = String(entry.moveGlyph);
+  }
+
+  const san = document.createElement('span');
+  san.className = 'move-san';
+  san.textContent = entry.san;
+  button.appendChild(san);
+
+  const moveGlyph = MOVE_GLYPH_BY_ID.get(entry.moveGlyph);
+  if (moveGlyph) {
+    const glyph = document.createElement('span');
+    glyph.className = 'move-glyph';
+    glyph.textContent = moveGlyph.symbol;
+    glyph.title = moveGlyph.name;
+    button.appendChild(glyph);
+  }
+
+  const positionGlyph = POSITION_GLYPH_BY_ID.get(entry.positionGlyph);
+  if (positionGlyph) {
+    const glyph = document.createElement('span');
+    glyph.className = 'position-glyph';
+    glyph.textContent = positionGlyph.symbol;
+    glyph.title = positionGlyph.name;
+    button.appendChild(glyph);
+  }
+
+  const engineEval = formatEngineEval(entry.engineEval);
+  if (engineEval) {
+    const evaluation = document.createElement('span');
+    evaluation.className = 'move-eval';
+    evaluation.textContent = engineEval;
+    button.appendChild(evaluation);
+  }
+
+  const annotations = [
+    moveGlyph?.name,
+    positionGlyph?.name,
+    engineEval ? `engine evaluation ${engineEval}` : null,
+  ].filter(Boolean);
+  button.setAttribute(
+    'aria-label',
+    `Move ${entry.moveNumber}${entry.color === 'w' ? ', White' : ', Black'}: ${entry.san}${annotations.length ? `, ${annotations.join(', ')}` : ''}`,
+  );
   button.addEventListener('click', () => goto(entry.id));
   button.addEventListener('contextmenu', (event) => openMoveContextMenu(event, entry));
   return button;
+}
+
+function updateMoveCellWidth() {
+  if (!moveList) return;
+
+  const lines = [...moveList.querySelectorAll('.move-line')];
+  if (!lines.length || !moveList.clientWidth) {
+    moveList.style.removeProperty('--move-cell-width');
+    return;
+  }
+
+  const listRect = moveList.getBoundingClientRect();
+  const listWidth = moveList.clientWidth;
+  const firstLine = lines[0];
+  const numberWidth = firstLine.querySelector('.move-number')?.getBoundingClientRect().width || 0;
+  const gap = parseFloat(getComputedStyle(firstLine).columnGap) || 0;
+
+  moveList.style.setProperty('--move-cell-width', 'max-content');
+
+  let widest = 0;
+  let minAvailable = listWidth;
+  for (const line of lines) {
+    const indent = Math.max(0, line.getBoundingClientRect().left - listRect.left);
+    minAvailable = Math.min(minAvailable, listWidth - indent - numberWidth - gap * 2);
+    for (const cell of line.querySelectorAll('.move-cell')) {
+      widest = Math.max(widest, cell.getBoundingClientRect().width);
+    }
+  }
+
+  const maxCellWidth = Math.max(0, Math.floor(minAvailable / 2));
+  moveList.style.setProperty(
+    '--move-cell-width',
+    `min(max(var(--move-cell-min-width), ${Math.ceil(widest)}px), ${maxCellWidth}px)`,
+  );
 }
 
 function renderMoveList() {
@@ -327,6 +469,7 @@ function renderMoveList() {
     empty.className = 'move-list-empty';
     empty.textContent = 'No moves yet';
     moveList.replaceChildren(empty);
+    moveList.style.removeProperty('--move-cell-width');
     return;
   }
 
@@ -425,6 +568,7 @@ function renderMoveList() {
   }
 
   moveList.replaceChildren(moves);
+  updateMoveCellWidth();
 }
 
 function renderMoveSelector() {
@@ -516,6 +660,9 @@ function commitMove(move, moveNumber, color) {
     promotion: move.promotion || null,
     moveNumber,
     color,
+    moveGlyph: null,
+    positionGlyph: null,
+    engineEval: null,
     children: [],
     mainChildId: null,
   };
@@ -530,6 +677,18 @@ function commitMove(move, moveNumber, color) {
 function isSideVariation(entry) {
   const parent = parentOf(entry);
   return Boolean(parent && parent.mainChildId !== entry.id);
+}
+
+function toggleMoveGlyph(entry, glyphId) {
+  if (!entry.san || !MOVE_GLYPH_BY_ID.has(glyphId)) return;
+  entry.moveGlyph = entry.moveGlyph === glyphId ? null : glyphId;
+  refresh();
+}
+
+function togglePositionGlyph(entry, glyphId) {
+  if (!entry.san || !POSITION_GLYPH_BY_ID.has(glyphId)) return;
+  entry.positionGlyph = entry.positionGlyph === glyphId ? null : glyphId;
+  refresh();
 }
 
 function closeMoveContextMenu() {
@@ -550,6 +709,46 @@ function addContextAction(label, action, disabled = false) {
     action();
   });
   moveContextMenu.appendChild(button);
+}
+
+function addContextDivider() {
+  const divider = document.createElement('div');
+  divider.className = 'context-menu-divider';
+  divider.setAttribute('role', 'separator');
+  moveContextMenu.appendChild(divider);
+}
+
+function addGlyphSection(label, glyphs, getCurrentId, onSelect, shortcutPrefix) {
+  const section = document.createElement('div');
+  section.className = 'context-menu-section';
+
+  const heading = document.createElement('div');
+  heading.className = 'context-menu-label';
+  heading.textContent = label;
+
+  const grid = document.createElement('div');
+  grid.className = 'context-menu-glyphs';
+  grid.setAttribute('role', 'group');
+  grid.setAttribute('aria-label', label);
+
+  glyphs.forEach((glyph, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.glyphId = String(glyph.id);
+    button.textContent = glyph.symbol;
+    button.title = `${glyph.name} (${glyph.symbol}) — ${shortcutPrefix}${index + 1}`;
+    button.setAttribute('aria-label', `${glyph.name} (${glyph.symbol}), shortcut ${shortcutPrefix}${index + 1}`);
+    button.setAttribute('aria-pressed', String(glyph.id === getCurrentId()));
+    button.classList.toggle('active', glyph.id === getCurrentId());
+    button.addEventListener('click', () => {
+      onSelect(glyph.id);
+      closeMoveContextMenu();
+    });
+    grid.appendChild(button);
+  });
+
+  section.append(heading, grid);
+  moveContextMenu.appendChild(section);
 }
 
 function promoteVariation(entry) {
@@ -629,6 +828,22 @@ function openMoveContextMenu(event, entry) {
   if (!moveContextMenu) return;
   moveContextMenu.replaceChildren();
 
+  addGlyphSection(
+    'Move',
+    MOVE_GLYPHS,
+    () => entry.moveGlyph,
+    (glyphId) => toggleMoveGlyph(entry, glyphId),
+    '',
+  );
+  addGlyphSection(
+    'Position',
+    POSITION_GLYPHS,
+    () => entry.positionGlyph,
+    (glyphId) => togglePositionGlyph(entry, glyphId),
+    'Shift+',
+  );
+  addContextDivider();
+
   if (isSideVariation(entry)) {
     const parent = parentOf(entry);
     const variations = parent.children.filter((child) => child.id !== parent.mainChildId);
@@ -640,7 +855,7 @@ function openMoveContextMenu(event, entry) {
     }
   }
 
-  addContextAction('Delete from here', () => deleteMove(entry));
+  addContextAction('Delete moves from here', () => deleteMove(entry));
   moveContextMenu.hidden = false;
   const { width, height } = moveContextMenu.getBoundingClientRect();
   moveContextMenu.style.left = `${Math.min(event.clientX, window.innerWidth - width - 8)}px`;
@@ -743,6 +958,12 @@ function importPgn(pgn) {
     const moves = importedGame.history({ verbose: true });
     if (!moves.length && !Object.keys(headers).length) return false;
 
+    const commentsByFen = new Map();
+    for (const { fen, comment } of importedGame.getComments()) {
+      const existing = commentsByFen.get(fen);
+      commentsByFen.set(fen, existing ? `${existing} ${comment}` : comment);
+    }
+
     const tree = createRoot(rootFen);
     let parent = tree;
     let importedNodeId = 1;
@@ -764,6 +985,9 @@ function importPgn(pgn) {
         promotion: move.promotion || null,
         moveNumber,
         color,
+        moveGlyph: null,
+        positionGlyph: null,
+        engineEval: parseEngineEval(commentsByFen.get(replay.fen())),
         children: [],
         mainChildId: null,
       };
@@ -841,6 +1065,34 @@ deleteDialog.addEventListener('click', (event) => {
   if (event.target === deleteDialog) closeDeleteDialog();
 });
 
+function isEditableTarget(target) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+  );
+}
+
+function digitIndexFromEvent(event) {
+  const match = /^(?:Digit|Numpad)([1-8])$/.exec(event.code || '');
+  return match ? Number(match[1]) - 1 : null;
+}
+
+function applyMoveGlyphShortcut(index) {
+  const entry = currentNode();
+  const glyphId = MOVE_GLYPH_IDS[index];
+  if (!entry.san || glyphId === undefined) return;
+  toggleMoveGlyph(entry, glyphId);
+  closeMoveContextMenu();
+}
+
+function applyPositionGlyphShortcut(index) {
+  const entry = currentNode();
+  const glyphId = POSITION_GLYPH_IDS[index];
+  if (!entry.san || glyphId === undefined) return;
+  togglePositionGlyph(entry, glyphId);
+  closeMoveContextMenu();
+}
+
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !importDialog.hidden) {
     closeImportDialog();
@@ -863,7 +1115,7 @@ document.addEventListener('keydown', (event) => {
     closeSettings();
     return;
   }
-  if (event.target === importInput) return;
+  if (isEditableTarget(event.target)) return;
   if (pendingPromotion) return;
 
   if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.key.toLowerCase() === 'g') {
@@ -993,6 +1245,15 @@ document.addEventListener('keydown', (event) => {
   if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 's') {
     event.preventDefault();
     setShowPanel(!showPanel);
+    return;
+  }
+  const digitIndex = digitIndexFromEvent(event);
+  if (digitIndex !== null && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.preventDefault();
+    if (!event.repeat) {
+      if (event.shiftKey) applyPositionGlyphShortcut(digitIndex);
+      else applyMoveGlyphShortcut(digitIndex);
+    }
     return;
   }
   if (!event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -1316,5 +1577,15 @@ if (!loadState()) {
   nextNodeId = 1;
   reindexTree();
 }
-
 refresh();
+
+if (moveList) {
+  let lastMoveListWidth = moveList.clientWidth;
+  const moveListResizeObserver = new ResizeObserver((entries) => {
+    const width = entries[0].contentRect.width;
+    if (width === lastMoveListWidth) return;
+    lastMoveListWidth = width;
+    updateMoveCellWidth();
+  });
+  moveListResizeObserver.observe(moveList);
+}
