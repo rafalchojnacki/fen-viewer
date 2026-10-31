@@ -94,7 +94,7 @@ const STATE_KEY = 'fen-viewer.state';
 const turnColor = (fen) => (fen.trim().split(/\s+/)[1] === 'w' ? 'white' : 'black');
 const orientation = () => (flipped ? 'black' : 'white');
 
-function createRoot(fen) {
+function createRoot(fen, metadata = {}) {
   return {
     id: 'root',
     fen,
@@ -107,9 +107,61 @@ function createRoot(fen) {
     moveGlyph: null,
     positionGlyph: null,
     engineEval: null,
+    // Imported PGN tags (Event, White, Result, ...). FEN and SetUp are not
+    // stored here because they are derived from the root position.
+    metadata,
     children: [],
     mainChildId: null,
   };
+}
+
+const DERIVED_TAGS = new Set(['FEN', 'SetUp']);
+
+function metadataFromHeaders(headers) {
+  const metadata = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (!DERIVED_TAGS.has(key) && typeof value === 'string') metadata[key] = value;
+  }
+  return metadata;
+}
+
+// Reads the tag pairs of a PGN, honouring \" and \\ escapes in values (chess.js
+// does not unescape them). Returns the values and the PGN with every tag line
+// removed except FEN/SetUp, which chess.js needs to set up the start position.
+function parsePgnTags(pgn) {
+  const tagLine = /^[ \t]*\[(\w+)[ \t]+"((?:[^"\\\n]|\\.)*)"[ \t]*\][ \t]*$/gm;
+  const tags = {};
+  for (const match of pgn.matchAll(tagLine)) {
+    tags[match[1]] = match[2].replace(/\\(.)/g, '$1');
+  }
+  const sanitized = pgn.replace(tagLine, (line, key) => (DERIVED_TAGS.has(key) ? line : ''));
+  return { tags, sanitized };
+}
+
+function formatTagValue(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+// Returns the PGN tag lines for the tree: the metadata, plus SetUp/FEN when the
+// tree does not start from the standard position. Also returns the termination
+// marker, taken from the Result tag when it is a valid result.
+function pgnHeaderLines(root) {
+  const lines = [];
+  if (root.fen !== START_FEN) {
+    lines.push('[SetUp "1"]', `[FEN "${root.fen}"]`);
+  }
+  for (const [key, value] of Object.entries(root.metadata || {})) {
+    if (DERIVED_TAGS.has(key)) continue;
+    lines.push(`[${key} "${formatTagValue(value)}"]`);
+  }
+  const result = root.metadata?.Result;
+  const termination = ['1-0', '0-1', '1/2-1/2', '*'].includes(result) ? result : '*';
+  return { lines, termination };
+}
+
+function assemblePgn(lines, movetext, termination) {
+  const body = `${movetext} ${termination}`.trim();
+  return lines.length ? `${lines.join('\n')}\n\n${body}` : body;
 }
 
 function isValidEngineEval(engineEval) {
@@ -949,8 +1001,9 @@ function importFen(fen) {
 
 function importPgn(pgn) {
   try {
+    const { tags, sanitized } = parsePgnTags(pgn);
     const importedGame = new Chess();
-    importedGame.loadPgn(pgn);
+    importedGame.loadPgn(sanitized);
     const headers = importedGame.getHeaders();
     const rootFen = headers.FEN || START_FEN;
     if (!isValidFen(rootFen)) return false;
@@ -964,7 +1017,7 @@ function importPgn(pgn) {
       commentsByFen.set(fen, existing ? `${existing} ${comment}` : comment);
     }
 
-    const tree = createRoot(rootFen);
+    const tree = createRoot(rootFen, metadataFromHeaders(tags));
     let parent = tree;
     let importedNodeId = 1;
     for (const importedMove of moves) {
@@ -1317,14 +1370,10 @@ function formatLine(first, parent, forceNumber = true, firstIsMain = true, mainO
 }
 
 function buildPgn() {
-  const headers = [];
-  if (moveTree.fen !== START_FEN) {
-    headers.push('[SetUp "1"]', `[FEN "${moveTree.fen}"]`);
-  }
+  const { lines, termination } = pgnHeaderLines(moveTree);
   const main = mainChildOf(moveTree);
   const movetext = main ? formatLine(main, moveTree).join(' ') : '';
-  const body = `${movetext} *`.trim();
-  return headers.length ? `${headers.join('\n')}\n\n${body}` : body;
+  return assemblePgn(lines, movetext, termination);
 }
 
 // Lichess export: the current position becomes the starting position
@@ -1341,15 +1390,11 @@ function buildLichessExport() {
   const onPath = new Set(path.map((node) => node.id));
   const mainOf = (node) => node.children.find((child) => onPath.has(child.id)) || mainChildOf(node);
 
-  const headers = [];
-  if (moveTree.fen !== START_FEN) {
-    headers.push('[SetUp "1"]', `[FEN "${moveTree.fen}"]`);
-  }
+  const { lines, termination } = pgnHeaderLines(moveTree);
   const first = mainOf(moveTree);
   const movetext = first ? formatLine(first, moveTree, true, true, mainOf).join(' ') : '';
-  const body = `${movetext} *`.trim();
   return {
-    pgn: headers.length ? `${headers.join('\n')}\n\n${body}` : body,
+    pgn: assemblePgn(lines, movetext, termination),
     ply: path.length,
   };
 }
@@ -1655,6 +1700,7 @@ function loadState() {
     };
     if (!isValidNode(saved.moveTree, true)) return false;
     moveTree = saved.moveTree;
+    if (!moveTree.metadata || typeof moveTree.metadata !== 'object') moveTree.metadata = {};
     nextNodeId = 1;
     reindexTree();
     currentNodeId = nodeById.has(saved.currentNodeId) ? saved.currentNodeId : moveTree.id;
