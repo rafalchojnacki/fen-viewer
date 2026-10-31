@@ -56,6 +56,8 @@ let parentById = new Map();
 let nextNodeId = 1;
 let pendingPromotion = null;
 let pendingDeleteEntry = null;
+let pendingImportChord = false;
+let pendingImportChordTimeout = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
 let showPanel = localStorage.getItem('fen-viewer.showPanel') !== 'false';
 let currentPieces = localStorage.getItem('fen-viewer.pieces') || 'staunty';
@@ -864,8 +866,35 @@ document.addEventListener('keydown', (event) => {
   if (event.target === importInput) return;
   if (pendingPromotion) return;
 
+  if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.key.toLowerCase() === 'g') {
+    event.preventDefault();
+    if (pendingTimerChord) {
+      pendingTimerChord = false;
+      if (pendingTimerChordTimeout) {
+        clearTimeout(pendingTimerChordTimeout);
+        pendingTimerChordTimeout = null;
+      }
+    }
+    pendingImportChord = true;
+    if (pendingImportChordTimeout) {
+      clearTimeout(pendingImportChordTimeout);
+    }
+    pendingImportChordTimeout = setTimeout(() => {
+      pendingImportChord = false;
+      pendingImportChordTimeout = null;
+    }, 800);
+    return;
+  }
+
   if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.key.toLowerCase() === 't') {
     event.preventDefault();
+    if (pendingImportChord) {
+      pendingImportChord = false;
+      if (pendingImportChordTimeout) {
+        clearTimeout(pendingImportChordTimeout);
+        pendingImportChordTimeout = null;
+      }
+    }
     pendingTimerChord = true;
     if (pendingTimerChordTimeout) {
       clearTimeout(pendingTimerChordTimeout);
@@ -935,6 +964,24 @@ document.addEventListener('keydown', (event) => {
     if (pendingTimerChordTimeout) {
       clearTimeout(pendingTimerChordTimeout);
       pendingTimerChordTimeout = null;
+    }
+  }
+
+  if (pendingImportChord && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    if (event.key.toLowerCase() === 'i') {
+      event.preventDefault();
+      pendingImportChord = false;
+      if (pendingImportChordTimeout) {
+        clearTimeout(pendingImportChordTimeout);
+        pendingImportChordTimeout = null;
+      }
+      openImportDialog();
+      return;
+    }
+    pendingImportChord = false;
+    if (pendingImportChordTimeout) {
+      clearTimeout(pendingImportChordTimeout);
+      pendingImportChordTimeout = null;
     }
   }
 
