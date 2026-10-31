@@ -1332,6 +1332,45 @@ lichessBtn.addEventListener('click', () => {
   window.open(`https://lichess.org/analysis/pgn/${encodeURIComponent(buildPgn())}`, '_blank');
 });
 
+const copyPgnBtn = document.getElementById('copy-pgn-btn');
+const downloadPgnBtn = document.getElementById('download-pgn-btn');
+
+function copyTextFallback(text) {
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  const ok = document.execCommand('copy');
+  area.remove();
+  return ok;
+}
+
+copyPgnBtn.addEventListener('click', async () => {
+  const pgn = buildPgn();
+  try {
+    await navigator.clipboard.writeText(pgn);
+  } catch {
+    if (!copyTextFallback(pgn)) {
+      window.alert('Could not copy the PGN to the clipboard.');
+    }
+  }
+});
+
+downloadPgnBtn.addEventListener('click', () => {
+  const blob = new Blob([`${buildPgn()}\n`], { type: 'application/x-chess-pgn' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'game.pgn';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+});
+
 const timerToggle = document.getElementById('timer-toggle');
 const timerPanel = document.getElementById('timer-panel');
 const timerDisplay = document.getElementById('timer-display');

@@ -828,14 +828,12 @@ main {
   display: block;
 }
 
-#import-btn svg {
+#import-btn svg,
+#copy-pgn-btn svg,
+#download-pgn-btn svg,
+#lichess-btn svg {
   width: 18px;
   height: 18px;
-}
-
-#lichess-btn svg {
-  width: 16px;
-  height: 16px;
 }
 
 .board-frame {
