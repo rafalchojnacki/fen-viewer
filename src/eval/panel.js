@@ -1,5 +1,6 @@
 import { StockfishEngine } from './stockfish.js';
 import { loadMaia, scoreMoves } from './maia.js';
+import { setSplitEnabled } from '../sidebar-split.js';
 import {
   applyUci,
   formatPercent,
@@ -318,6 +319,7 @@ export class EvalPanel {
     this.toggle.checked = this.enabled;
     // Collapse the section to its header while evaluation is off.
     this.section.classList.toggle('collapsed', !this.enabled);
+    setSplitEnabled(this.enabled);
     this.settingsBtn.setAttribute('aria-pressed', String(!this.settingsMenu.hidden));
     this.body.replaceChildren();
 

@@ -7,6 +7,24 @@ const DEFAULT_SHARE = 0.4;
 const MIN_ANALYSIS_PX = 120;
 const MIN_MOVES_PX = 200;
 const KEY_STEP = 0.02;
+const DRAG_HINT = 'Drag to resize (arrow keys work too)';
+
+// Turns the divider on or off along with the Evaluation section. When off it
+// stays visible as a plain line, but cannot be dragged or focused, and has no hint.
+export function setSplitEnabled(enabled, doc = document) {
+  const divider = doc.getElementById('sidebar-split');
+  if (!divider) return;
+  divider.classList.toggle('disabled', !enabled);
+  if (enabled) {
+    divider.setAttribute('tabindex', '0');
+    divider.setAttribute('title', DRAG_HINT);
+    divider.removeAttribute('aria-disabled');
+  } else {
+    divider.removeAttribute('tabindex');
+    divider.removeAttribute('title');
+    divider.setAttribute('aria-disabled', 'true');
+  }
+}
 
 export function initSidebarSplit(doc = document) {
   const panel = doc.querySelector('.side-inner-panel');
@@ -47,7 +65,7 @@ export function initSidebarSplit(doc = document) {
   apply();
 
   divider.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0) return;
+    if (divider.classList.contains('disabled') || event.button !== 0) return;
     event.preventDefault();
     divider.setPointerCapture(event.pointerId);
     divider.classList.add('dragging');
@@ -71,6 +89,7 @@ export function initSidebarSplit(doc = document) {
   });
 
   divider.addEventListener('keydown', (event) => {
+    if (divider.classList.contains('disabled')) return;
     if (event.key === 'ArrowUp') setShare(share - KEY_STEP);
     else if (event.key === 'ArrowDown') setShare(share + KEY_STEP);
     else return;

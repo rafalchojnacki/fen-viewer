@@ -2001,6 +2001,12 @@ main {
   display: none;
 }
 
-.analysis-section.collapsed + .sidebar-split {
-  display: none;
+/* Evaluation off: the divider stays as a plain line, without drag or hover. */
+.sidebar-split.disabled {
+  cursor: default;
+}
+
+.sidebar-split.disabled:hover::after,
+.sidebar-split.disabled:focus-visible::after {
+  background: color-mix(in srgb, var(--text-dim) 30%, transparent);
 }
