@@ -1660,7 +1660,6 @@ function renderMetaPanel() {
     'meta-result': metaValue(meta.Result),
     'meta-date': formatMetaDate(meta.Date),
     'meta-event': metaValue(meta.Event),
-    'meta-site': metaValue(meta.Site),
     'meta-round': metaValue(meta.Round) ? `Round ${metaValue(meta.Round)}` : null,
   };
   for (const [id, text] of Object.entries(fields)) {

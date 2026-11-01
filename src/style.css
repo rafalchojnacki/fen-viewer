@@ -12,7 +12,7 @@
   --glyph-tint-7: #6aa8e0;
   --glyph-tint-22: #b08ae0;
   --side-panel-width: clamp(426px, calc(54vmin + 36px), 560px);
-  --meta-panel-width: clamp(280px, 40vmin, 380px);
+  --meta-panel-width: clamp(240px, 32vmin, 300px);
   --glass-bg: rgba(40, 42, 50, 0.5);
   --glass-bg-strong: rgba(32, 34, 42, 0.68);
   --dropdown-solid: #2a2c33;
