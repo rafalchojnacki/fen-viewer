@@ -427,6 +427,7 @@ main {
 }
 
 .side-inner-panel {
+  position: relative;
   flex: none;
   width: 100%;
   height: var(--frame-size);
@@ -445,6 +446,41 @@ main {
 
 .panel-action-buttons {
   margin-left: auto;
+}
+
+/* Import and Reset, right-aligned just above the evaluation panel. */
+.side-actions {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.side-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.side-action:hover {
+  background: var(--hover-bg);
+}
+
+.side-action svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .side-info-panel[hidden] {
@@ -1406,6 +1442,14 @@ main {
   .side-panel-bg {
     mask-image: none;
     -webkit-mask-image: none;
+  }
+
+  /* Stacked under the board there is no room above the panel, so the
+     buttons sit in the flow at the top of it. */
+  .side-actions {
+    position: static;
+    margin-bottom: 8px;
+    justify-content: flex-end;
   }
 
   .side-info-panel {

@@ -40,6 +40,7 @@ const MOVE_GLYPH_IDS = MOVE_GLYPHS.map((glyph) => glyph.id);
 const POSITION_GLYPH_IDS = POSITION_GLYPHS.map((glyph) => glyph.id);
 
 const importBtn = document.getElementById('import-btn');
+const resetBtn = document.getElementById('reset-btn');
 const importDialog = document.getElementById('import-dialog');
 const importInput = document.getElementById('import-input');
 const importError = document.getElementById('import-error');
@@ -59,6 +60,7 @@ const moveList = document.getElementById('move-list');
 const moveSelector = document.getElementById('move-selector');
 const moveContextMenu = document.getElementById('move-context-menu');
 const deleteDialog = document.getElementById('delete-dialog');
+const deleteDialogTitle = document.getElementById('delete-dialog-title');
 const deleteDialogMessage = document.getElementById('delete-dialog-message');
 const deleteCancel = document.getElementById('delete-cancel');
 const deleteConfirm = document.getElementById('delete-confirm');
@@ -84,7 +86,7 @@ let nodeById = new Map();
 let parentById = new Map();
 let nextNodeId = 1;
 let pendingPromotion = null;
-let pendingDeleteEntry = null;
+let pendingConfirm = null;
 let pendingImportChord = false;
 let pendingImportChordTimeout = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
@@ -845,8 +847,18 @@ function countSubtree(entry) {
 }
 
 function closeDeleteDialog() {
-  pendingDeleteEntry = null;
+  pendingConfirm = null;
   deleteDialog.hidden = true;
+}
+
+// Shows the shared confirm dialog; onConfirm runs only if the user confirms.
+function openConfirmDialog({ title, message, label, onConfirm }) {
+  pendingConfirm = onConfirm;
+  deleteDialogTitle.textContent = title;
+  deleteDialogMessage.textContent = message;
+  deleteConfirm.textContent = label;
+  deleteDialog.hidden = false;
+  deleteConfirm.focus();
 }
 
 function performDelete(entry) {
@@ -872,10 +884,25 @@ function deleteMove(entry) {
     performDelete(entry);
     return;
   }
-  pendingDeleteEntry = entry;
-  deleteDialogMessage.textContent = `Delete ${entry.san} and ${count - 1} move${count === 2 ? '' : 's'} that follow it?`;
-  deleteDialog.hidden = false;
-  deleteConfirm.focus();
+  openConfirmDialog({
+    title: 'Delete moves?',
+    message: `Delete ${entry.san} and ${count - 1} move${count === 2 ? '' : 's'} that follow it?`,
+    label: 'Delete',
+    onConfirm: () => performDelete(entry),
+  });
+}
+
+// Clears the board and all moves, returning to the starting position.
+function resetGame() {
+  currentFen = START_FEN;
+  game = makeGame(START_FEN);
+  moveTree = createRoot(START_FEN);
+  currentNodeId = moveTree.id;
+  lastScrolledNodeId = null;
+  nextNodeId = 1;
+  reindexTree();
+  resetMoveSelection();
+  refresh();
 }
 
 function openMoveContextMenu(event, entry) {
@@ -1113,9 +1140,18 @@ importInput.addEventListener('keydown', (event) => {
 
 deleteCancel.addEventListener('click', closeDeleteDialog);
 deleteConfirm.addEventListener('click', () => {
-  const entry = pendingDeleteEntry;
+  const action = pendingConfirm;
   closeDeleteDialog();
-  if (entry) performDelete(entry);
+  if (action) action();
+});
+
+resetBtn.addEventListener('click', () => {
+  openConfirmDialog({
+    title: 'Reset game?',
+    message: 'This clears the board and removes all moves.',
+    label: 'Reset',
+    onConfirm: resetGame,
+  });
 });
 deleteDialog.addEventListener('click', (event) => {
   if (event.target === deleteDialog) closeDeleteDialog();

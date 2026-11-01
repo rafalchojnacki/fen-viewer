@@ -33,6 +33,16 @@
           <aside class="side-info-panel">
             <div class="side-panel-bg"></div>
             <div class="side-inner-panel">
+              <div class="side-actions" role="group" aria-label="Game actions">
+                <button id="import-btn" type="button" class="side-action" title="Import FEN or PGN (Alt+G, I)" aria-label="Import FEN or PGN">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" /><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 2v4a2 2 0 0 0 2 2h4" /><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M2 15h10" /><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m9 18 3-3-3-3" /></svg>
+                  <span>Import</span>
+                </button>
+                <button id="reset-btn" type="button" class="side-action" title="Reset to the starting position" aria-label="Reset game">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" /></svg>
+                  <span>Reset</span>
+                </button>
+              </div>
               <div class="analysis-section" id="eval-section">
                 <div class="eval-header">
                   <span class="eval-title">Evaluation</span>
@@ -97,9 +107,6 @@
                     </button>
                   </div>
                   <div class="nav-buttons panel-action-buttons" role="group" aria-label="Position actions">
-                    <button id="import-btn" type="button" title="Import FEN or PGN (Alt+G, I)" aria-label="Import FEN or PGN">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V3m0 0L7 8m5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
-                    </button>
                     <button id="copy-pgn-btn" type="button" title="Copy PGN to clipboard" aria-label="Copy PGN to clipboard">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2" /><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
                     </button>
@@ -117,7 +124,7 @@
     <div id="move-context-menu" class="move-context-menu" role="menu" hidden></div>
     <div id="import-dialog" class="import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-dialog-title" hidden>
       <div class="import-dialog-panel">
-        <h2 id="import-dialog-title">Import FEN or PGN</h2>
+        <h2 id="import-dialog-title">Import</h2>
         <textarea id="import-input" rows="7" spellcheck="false" autocomplete="off" placeholder="Paste a FEN or PGN..."></textarea>
         <p id="import-error" class="import-error" hidden>Paste a valid FEN or PGN.</p>
         <div class="import-dialog-actions">
