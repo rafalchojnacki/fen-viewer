@@ -9,6 +9,7 @@ import './theme.css';
 import './style.css';
 import { evalPanel } from './eval/panel.js';
 import { initSidebarSplit } from './sidebar-split.js';
+import { initMovesSettings, loadMoveLayout } from './move-layout.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -87,6 +88,8 @@ let parentById = new Map();
 let nextNodeId = 1;
 let pendingPromotion = null;
 let pendingConfirm = null;
+// How the move list shows moves: 'inline', 'columns' or 'mixed'.
+let moveLayout = loadMoveLayout();
 let pendingImportChord = false;
 let pendingImportChordTimeout = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
@@ -518,33 +521,6 @@ function updateMoveCellWidth() {
   );
 }
 
-// True when the line starting at startNode, or any move along its main chain,
-// has a side variation.
-function hasSideVariations(startNode) {
-  for (let node = startNode; node; node = mainChildOf(node)) {
-    if (node.children.some((child) => child.id !== node.mainChildId)) return true;
-  }
-  return false;
-}
-
-// Renders a variation without sub-variations as wrapping text: "3. Bb5 a6 4. Ba4".
-// Numbers appear before White's moves, and before Black's only when the
-// variation starts with a Black move.
-function renderInlineSequence(startNode) {
-  const wrap = document.createElement('div');
-  wrap.className = 'move-inline';
-  for (let node = startNode; node; node = mainChildOf(node)) {
-    if (node.color === 'w' || node === startNode) {
-      const number = document.createElement('span');
-      number.className = 'move-number';
-      number.textContent = `${node.moveNumber}${node.color === 'w' ? '.' : '...'}`;
-      wrap.appendChild(number);
-    }
-    wrap.appendChild(createMoveButton(node));
-  }
-  return wrap;
-}
-
 function renderMoveList() {
   if (!moveList) return;
 
@@ -636,10 +612,53 @@ function renderMoveList() {
     return fragment;
   };
 
-  // A variation with no sub-variations is shown as flowing text; any other
-  // variation keeps the columnar layout.
+  // Inline layout: moves run as wrapping text. The variations that replace a
+  // move (its alternatives) are shown after it as indented blocks, and the text
+  // continues after them. `alternatives` are the alternatives to startNode.
+  const renderInlineSequence = (startNode, alternatives = []) => {
+    const fragment = document.createDocumentFragment();
+    let wrap = null;
+    let needNumber = true;
+    let alts = alternatives;
+
+    const showVariations = (variations) => {
+      wrap = null;
+      needNumber = true;
+      variations.forEach((variation) => {
+        const group = createVariationGroup();
+        group.appendChild(renderVariation(variation));
+        fragment.appendChild(group);
+      });
+    };
+
+    let node = startNode;
+    while (node) {
+      if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'move-inline';
+        fragment.appendChild(wrap);
+      }
+      if (needNumber || node.color === 'w') {
+        const number = document.createElement('span');
+        number.className = 'move-number';
+        number.textContent = `${node.moveNumber}${node.color === 'w' ? '.' : '...'}`;
+        wrap.appendChild(number);
+      }
+      needNumber = false;
+      wrap.appendChild(createMoveButton(node));
+
+      if (alts.length) showVariations(alts);
+      alts = node.children.filter((child) => child.id !== node.mainChildId);
+      node = mainChildOf(node);
+    }
+    if (alts.length) showVariations(alts);
+    return fragment;
+  };
+
+  // Variations use the layout chosen in the Moves settings: columns in "columns",
+  // text otherwise.
   const renderVariation = (variation) => (
-    hasSideVariations(variation) ? renderSequence(variation) : renderInlineSequence(variation)
+    moveLayout === 'columns' ? renderSequence(variation) : renderInlineSequence(variation)
   );
 
   const moves = document.createDocumentFragment();
@@ -648,7 +667,11 @@ function renderMoveList() {
   );
   const main = mainChildOf(moveTree);
   if (main) {
-    moves.appendChild(renderSequence(main, rootVariations));
+    moves.appendChild(
+      moveLayout === 'inline'
+        ? renderInlineSequence(main, rootVariations)
+        : renderSequence(main, rootVariations),
+    );
   } else {
     rootVariations.forEach((variation) => {
       const group = createVariationGroup();
@@ -1854,6 +1877,10 @@ if (!loadState()) {
   nextNodeId = 1;
   reindexTree();
 }
+initMovesSettings(moveLayout, (value) => {
+  moveLayout = value;
+  renderMoveList();
+});
 refresh();
 
 if (moveList) {

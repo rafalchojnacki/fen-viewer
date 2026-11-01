@@ -1,5 +1,6 @@
 import { StockfishEngine } from './stockfish.js';
 import { loadMaia, scoreMoves } from './maia.js';
+import { el, segmentedGroup } from '../ui.js';
 import { setSplitEnabled } from '../sidebar-split.js';
 import {
   applyUci,
@@ -24,13 +25,6 @@ import {
 const DOTS = 5;
 // Plies shown in the continuation line, after the best move.
 const CONTINUATION_PLIES = 6;
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
 
 const MIB = 1024 * 1024;
 
@@ -67,25 +61,6 @@ function updateMaiaProgress(wrap, status) {
         ? 'Loading Maia3 model…'
         : 'Preparing Maia3 model…';
   }
-}
-
-// Segmented toggle: one button per option, the active one is pressed.
-function segmentedGroup(container, options, onSelect) {
-  const buttons = options.map(({ value, label }) => {
-    const button = el('button', 'eval-seg-btn', label);
-    button.type = 'button';
-    button.dataset.value = String(value);
-    button.addEventListener('click', () => onSelect(value));
-    container.append(button);
-    return button;
-  });
-  return {
-    setValue(value) {
-      buttons.forEach((button) => {
-        button.setAttribute('aria-pressed', String(button.dataset.value === String(value)));
-      });
-    },
-  };
 }
 
 // The evaluation panel lives in the side panel's analysis section.
