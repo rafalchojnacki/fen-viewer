@@ -1523,9 +1523,10 @@ main {
 
 .eval-title {
   font-size: 12px;
+  font-weight: bold;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-dim);
+  color: var(--text-main);
 }
 
 .eval-controls {
