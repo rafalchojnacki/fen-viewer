@@ -1180,9 +1180,9 @@ deleteConfirm.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   openConfirmDialog({
-    title: 'Reset game?',
+    title: 'Clear game?',
     message: 'This clears the board and removes all moves.',
-    label: 'Reset',
+    label: 'Clear',
     onConfirm: resetGame,
   });
 });
