@@ -406,10 +406,24 @@ main {
   flex-direction: column;
   justify-content: center;
   overflow: visible;
-  padding-right: 72px;
+  padding: 0 16px;
   border: none;
   border-radius: 0;
   font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Frosted background behind the side panel. Solid in the middle, fading out
+   at the top and bottom edges. */
+.side-panel-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--panel-bg, var(--glass-bg));
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  mask-image: linear-gradient(to bottom, transparent 0, black 120px, black calc(100% - 120px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 120px, black calc(100% - 120px), transparent 100%);
 }
 
 .side-inner-panel {
@@ -1389,13 +1403,18 @@ main {
     left: 0;
   }
 
+  .side-panel-bg {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
   .side-info-panel {
     width: 100%;
     max-width: var(--frame-size);
     height: auto;
     max-height: 320px;
     margin-block: 0;
-    padding-right: 0;
+    padding: 0;
     justify-content: flex-start;
   }
 
