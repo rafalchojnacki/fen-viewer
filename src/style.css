@@ -609,6 +609,25 @@ main {
   margin-top: 1px;
 }
 
+/* Variations without sub-variations: moves flow as wrapped text. */
+.move-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.move-inline .move-number {
+  padding-right: 0;
+}
+
+.move-inline .move-ply {
+  width: auto;
+  overflow: visible;
+}
+
 .move-cell {
   display: flex;
   align-items: center;

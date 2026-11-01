@@ -518,6 +518,33 @@ function updateMoveCellWidth() {
   );
 }
 
+// True when the line starting at startNode, or any move along its main chain,
+// has a side variation.
+function hasSideVariations(startNode) {
+  for (let node = startNode; node; node = mainChildOf(node)) {
+    if (node.children.some((child) => child.id !== node.mainChildId)) return true;
+  }
+  return false;
+}
+
+// Renders a variation without sub-variations as wrapping text: "3. Bb5 a6 4. Ba4".
+// Numbers appear before White's moves, and before Black's only when the
+// variation starts with a Black move.
+function renderInlineSequence(startNode) {
+  const wrap = document.createElement('div');
+  wrap.className = 'move-inline';
+  for (let node = startNode; node; node = mainChildOf(node)) {
+    if (node.color === 'w' || node === startNode) {
+      const number = document.createElement('span');
+      number.className = 'move-number';
+      number.textContent = `${node.moveNumber}${node.color === 'w' ? '.' : '...'}`;
+      wrap.appendChild(number);
+    }
+    wrap.appendChild(createMoveButton(node));
+  }
+  return wrap;
+}
+
 function renderMoveList() {
   if (!moveList) return;
 
@@ -568,7 +595,7 @@ function renderMoveList() {
     const appendVariationGroups = (variations) => {
       variations.forEach((variation) => {
         const group = createVariationGroup();
-        group.appendChild(renderSequence(variation));
+        group.appendChild(renderVariation(variation));
         fragment.appendChild(group);
       });
     };
@@ -609,6 +636,12 @@ function renderMoveList() {
     return fragment;
   };
 
+  // A variation with no sub-variations is shown as flowing text; any other
+  // variation keeps the columnar layout.
+  const renderVariation = (variation) => (
+    hasSideVariations(variation) ? renderSequence(variation) : renderInlineSequence(variation)
+  );
+
   const moves = document.createDocumentFragment();
   const rootVariations = moveTree.children.filter(
     (child) => child.id !== moveTree.mainChildId,
@@ -619,7 +652,7 @@ function renderMoveList() {
   } else {
     rootVariations.forEach((variation) => {
       const group = createVariationGroup();
-      group.appendChild(renderSequence(variation));
+      group.appendChild(renderVariation(variation));
       moves.appendChild(group);
     });
   }
