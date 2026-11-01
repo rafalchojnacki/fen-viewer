@@ -1,26 +1,43 @@
 import { Chess } from 'chess.js';
 import { swapWdl } from './format.js';
 
-export const MAIA_MODEL_URL = '/models/maia3_23m.onnx';
+// Hosted on Hugging Face rather than bundled: the ~88 MiB model exceeds
+// Cloudflare Pages' 25 MiB per-file limit.
+export const MAIA_MODEL_URL =
+  'https://huggingface.co/cemoss17/maia3-onnx/resolve/main/maia3_23m.onnx';
 // Rating levels averaged for the move-probability circles.
 export const CIRCLE_RATINGS = [2200, 2300, 2400, 2500, 2600];
 
 let loading = null;
-let progressListener = null;
+let statusListener = null;
 
+function emitStatus(status) {
+  statusListener?.(status);
+}
+
+// Loading has two stages, reported to onStatus:
+//   { phase: 'download', loaded, total }  fetching the weights (total may be 0 if
+//                                          the server omits Content-Length)
+//   { phase: 'prepare' }                  building the ONNX session
+// A cached model skips the download stage, so only 'prepare' is reported.
 // The maia3-js and onnxruntime code is loaded on first use, not at page load.
-export function loadMaia(onProgress) {
-  if (onProgress) progressListener = onProgress;
+export function loadMaia(onStatus) {
+  if (onStatus) statusListener = onStatus;
   if (!loading) {
     loading = (async () => {
-      const { Maia3 } = await import('maia3-js/web');
-      const instance = new Maia3({
+      const { Maia3, ensureModelWeb } = await import('maia3-js/web');
+      const modelBytes = await ensureModelWeb({
         variant: '23m',
         url: MAIA_MODEL_URL,
+        onProgress: (loaded, total) => emitStatus({ phase: 'download', loaded, total }),
+      });
+      emitStatus({ phase: 'prepare' });
+      const instance = new Maia3({
+        variant: '23m',
+        modelBytes,
         numThreads: 1,
         simd: true,
         proxy: false,
-        onProgress: (loaded, total) => progressListener?.(loaded, total),
       });
       await instance.load();
       return instance;

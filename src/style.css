@@ -1823,9 +1823,57 @@ main {
   }
 }
 
+.eval-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eval-progress-label {
+  font-variant-numeric: tabular-nums;
+}
+
+.eval-progress-track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-main) 10%, transparent);
+}
+
+.eval-progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--text-main);
+  transition: width 0.15s linear;
+}
+
+/* Unknown total or preparing: sweep a short bar back and forth. */
+.eval-progress.indeterminate .eval-progress-fill {
+  width: 35%;
+  transition: none;
+  animation: eval-progress-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes eval-progress-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eval-skeleton {
     animation: none;
+  }
+
+  .eval-progress.indeterminate .eval-progress-fill {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
   }
 }
 

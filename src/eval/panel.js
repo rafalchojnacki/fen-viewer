@@ -31,6 +31,43 @@ function el(tag, className, text) {
   return node;
 }
 
+const MIB = 1024 * 1024;
+
+// Progress bar for the Maia model load (see loadMaia in maia.js). Shows a
+// determinate fill while downloading, and an indeterminate sweep while the
+// model is being prepared or when the total size is unknown.
+function maiaProgressElement(status) {
+  const wrap = el('div', 'eval-progress');
+  wrap.setAttribute('role', 'progressbar');
+  wrap.setAttribute('aria-label', 'Loading Maia3 model');
+  const label = el('p', 'eval-empty eval-progress-label');
+  const track = el('div', 'eval-progress-track');
+  track.append(el('div', 'eval-progress-fill'));
+  wrap.append(label, track);
+  updateMaiaProgress(wrap, status);
+  return wrap;
+}
+
+function updateMaiaProgress(wrap, status) {
+  const label = wrap.querySelector('.eval-progress-label');
+  const fill = wrap.querySelector('.eval-progress-fill');
+  const determinate = status.phase === 'download' && status.total > 0;
+  wrap.classList.toggle('indeterminate', !determinate);
+  if (determinate) {
+    const fraction = Math.min(1, status.loaded / status.total);
+    fill.style.width = `${(fraction * 100).toFixed(1)}%`;
+    wrap.setAttribute('aria-valuenow', String(Math.round(fraction * 100)));
+    label.textContent = `Downloading Maia3 model… ${(status.loaded / MIB).toFixed(1)} of ${(status.total / MIB).toFixed(1)} MB`;
+  } else {
+    fill.style.width = '';
+    wrap.removeAttribute('aria-valuenow');
+    label.textContent =
+      status.phase === 'download'
+        ? 'Loading Maia3 model…'
+        : 'Preparing Maia3 model…';
+  }
+}
+
 // Segmented toggle: one button per option, the active one is pressed.
 function segmentedGroup(container, options, onSelect) {
   const buttons = options.map(({ value, label }) => {
@@ -239,11 +276,11 @@ export class EvalPanel {
       return;
     }
 
-    this.view = { state: 'scoring', fen, lines: result.lines, scored: null };
+    this.view = { state: 'scoring', fen, lines: result.lines, scored: null, maia: { phase: 'download', loaded: 0, total: 0 } };
     this.render();
 
     try {
-      await loadMaia();
+      await loadMaia((status) => this.onMaiaStatus(runId, status));
       const moves = result.lines.map((line) => {
         const uci = line.pv[0];
         return { uci, childFen: uci ? applyUci(fen, uci) : null };
@@ -264,7 +301,20 @@ export class EvalPanel {
     this.render();
   }
 
+  // Called by loadMaia while the model downloads or prepares. Updates the
+  // progress bar in place; re-renders only if the bar isn't on screen yet.
+  onMaiaStatus(runId, status) {
+    if (runId !== this.runId || this.view?.state !== 'scoring') return;
+    this.view = { ...this.view, maia: status };
+    if (this.maiaProgress?.isConnected) {
+      updateMaiaProgress(this.maiaProgress, status);
+    } else {
+      this.render();
+    }
+  }
+
   render() {
+    this.maiaProgress = null;
     this.toggle.checked = this.enabled;
     // Collapse the section to its header while evaluation is off.
     this.section.classList.toggle('collapsed', !this.enabled);
@@ -290,6 +340,11 @@ export class EvalPanel {
     if (view.state === 'done' && view.lines.length === 0) {
       this.body.append(el('p', 'eval-empty', view.message));
       return;
+    }
+
+    if (view.state === 'scoring' && view.maia) {
+      this.maiaProgress = maiaProgressElement(view.maia);
+      this.body.append(this.maiaProgress);
     }
 
     const lines = view.lines;
