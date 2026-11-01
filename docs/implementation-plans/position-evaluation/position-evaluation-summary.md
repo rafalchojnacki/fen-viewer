@@ -21,7 +21,7 @@ Location: the top section of the side panel (the former "Analysis coming soon" b
 - Header: "Evaluation" label, toggle switch and settings button at the top right.
 - Settings popover:
   - Lines: segmented toggle 1 to 7 (default 3).
-  - Analysis: segmented toggle Fast (1M nodes) or Standard (10M nodes). Default Fast.
+  - Search depth: segmented toggle Fast (1M nodes) or Standard (10M nodes). Default Fast.
   - Peer rating: custom dropdown, 600 to 2600 in steps of 100 (default 1500).
 - Settings persist in `localStorage` under `fen-viewer.eval`. The toggle is always off after page load.
 - Key `E` toggles the panel (ignored while typing in an input).

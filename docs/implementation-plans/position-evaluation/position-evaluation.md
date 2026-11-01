@@ -3,7 +3,7 @@ Chess position evaluation panel:
     - It should possible to enable/disable it using a toggle switch
     - There should be also Settings button to configure:
         - Number of lines to show: 1-5
-        - Analysis quality:
+        - Search depth:
             - Fast - 1 milion nodes
             - Standard - 10 milion nodes
         - Peer raiting: selected from a drop down menu with options as in Maia3 strength levels (600 to 2600)
