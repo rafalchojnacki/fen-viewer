@@ -460,23 +460,26 @@ main {
   gap: 6px;
 }
 
+/* Same glass style as the buttons of the page settings panel. */
 .side-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
-  font: inherit;
+  padding: 7px 12px;
   font-size: 13px;
   color: var(--text-main);
-  background: transparent;
+  background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 7px;
+  border-radius: 8px;
   cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   transition: background-color 0.15s ease;
 }
 
 .side-action:hover {
-  background: var(--hover-bg);
+  background-color: var(--hover-bg);
 }
 
 .side-action svg {
