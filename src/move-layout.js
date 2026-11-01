@@ -16,7 +16,7 @@ export const MOVE_LAYOUTS = {
   },
 };
 
-export const DEFAULT_MOVE_LAYOUT = 'inline';
+export const DEFAULT_MOVE_LAYOUT = 'mixed';
 
 const STORAGE_KEY = 'fen-viewer.moveLayout';
 
