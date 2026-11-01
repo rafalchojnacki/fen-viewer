@@ -570,9 +570,7 @@ function renderMoveList() {
 
     const appendVariationGroups = (variations) => {
       variations.forEach((variation) => {
-        const group = createVariationGroup();
-        group.appendChild(renderVariation(variation));
-        fragment.appendChild(group);
+        appendVariation(fragment, variation);
       });
     };
 
@@ -612,32 +610,30 @@ function renderMoveList() {
     return fragment;
   };
 
-  // Inline layout: moves run as wrapping text. The variations that replace a
-  // move (its alternatives) are shown after it as indented blocks, and the text
-  // continues after them. `alternatives` are the alternatives to startNode.
-  const renderInlineSequence = (startNode, alternatives = []) => {
-    const fragment = document.createDocumentFragment();
-    let wrap = null;
+  const parenthesis = (text) => {
+    const span = document.createElement('span');
+    span.className = 'move-paren';
+    span.textContent = text;
+    return span;
+  };
+
+  // Inline layout: the whole line is one run of wrapping text. A variation is
+  // written in parentheses right after the move it replaces, and the line
+  // continues after it. `alternatives` are the variations that replace startNode.
+  const flowInline = (wrap, startNode, alternatives) => {
     let needNumber = true;
     let alts = alternatives;
 
-    const showVariations = (variations) => {
-      wrap = null;
-      needNumber = true;
+    const appendAlternatives = (variations) => {
       variations.forEach((variation) => {
-        const group = createVariationGroup();
-        group.appendChild(renderVariation(variation));
-        fragment.appendChild(group);
+        wrap.appendChild(parenthesis('('));
+        flowInline(wrap, variation, []);
+        wrap.appendChild(parenthesis(')'));
       });
+      needNumber = true;
     };
 
-    let node = startNode;
-    while (node) {
-      if (!wrap) {
-        wrap = document.createElement('div');
-        wrap.className = 'move-inline';
-        fragment.appendChild(wrap);
-      }
+    for (let node = startNode; node; node = mainChildOf(node)) {
       if (needNumber || node.color === 'w') {
         const number = document.createElement('span');
         number.className = 'move-number';
@@ -647,19 +643,34 @@ function renderMoveList() {
       needNumber = false;
       wrap.appendChild(createMoveButton(node));
 
-      if (alts.length) showVariations(alts);
+      if (alts.length) appendAlternatives(alts);
       alts = node.children.filter((child) => child.id !== node.mainChildId);
-      node = mainChildOf(node);
     }
-    if (alts.length) showVariations(alts);
-    return fragment;
+    if (alts.length) appendAlternatives(alts);
   };
 
-  // Variations use the layout chosen in the Moves settings: columns in "columns",
-  // text otherwise.
-  const renderVariation = (variation) => (
-    moveLayout === 'columns' ? renderSequence(variation) : renderInlineSequence(variation)
-  );
+  const renderInlineSequence = (startNode, alternatives = []) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'move-inline';
+    flowInline(wrap, startNode, alternatives);
+    return wrap;
+  };
+
+  // Adds one top-level variation to target. Columns: an indented block of
+  // columns. Mixed: an indented block of text. Inline (only when the game has
+  // no main line): a parenthesised line of text.
+  const appendVariation = (target, variation) => {
+    if (moveLayout === 'columns' || moveLayout === 'mixed') {
+      const group = createVariationGroup();
+      group.appendChild(moveLayout === 'columns' ? renderSequence(variation) : renderInlineSequence(variation));
+      target.appendChild(group);
+      return;
+    }
+    const wrap = renderInlineSequence(variation);
+    wrap.prepend(parenthesis('('));
+    wrap.append(parenthesis(')'));
+    target.appendChild(wrap);
+  };
 
   const moves = document.createDocumentFragment();
   const rootVariations = moveTree.children.filter(
@@ -674,9 +685,7 @@ function renderMoveList() {
     );
   } else {
     rootVariations.forEach((variation) => {
-      const group = createVariationGroup();
-      group.appendChild(renderVariation(variation));
-      moves.appendChild(group);
+      appendVariation(moves, variation);
     });
   }
 

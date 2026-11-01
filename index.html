@@ -59,12 +59,28 @@
                     </button>
                   </div>
                 </div>
-                <div id="eval-settings" class="eval-settings" hidden>
-                  <div class="eval-field"><span>Lines</span><div id="eval-lines" class="eval-seg" role="group" aria-label="Number of lines"></div></div>
-                  <div class="eval-field"><span>Search depth</span><div id="eval-quality" class="eval-seg" role="group" aria-label="Search depth"></div></div>
-                  <div class="eval-field">
-                    <span>Peer rating</span>
-                    <div class="eval-dropdown">
+                <div id="eval-settings" class="settings-menu section-popover" hidden>
+                  <div class="settings-header">Evaluation</div>
+                  <div class="settings-item">
+                    <span class="settings-item-label">
+                      <span class="settings-item-title">Lines</span>
+                      <span class="settings-item-desc">Engine lines shown</span>
+                    </span>
+                    <div id="eval-lines" class="eval-seg" role="group" aria-label="Number of lines"></div>
+                  </div>
+                  <div class="settings-item">
+                    <span class="settings-item-label">
+                      <span class="settings-item-title">Search depth</span>
+                      <span class="settings-item-desc">How hard the engine searches</span>
+                    </span>
+                    <div id="eval-quality" class="eval-seg" role="group" aria-label="Search depth"></div>
+                  </div>
+                  <div class="settings-item">
+                    <span class="settings-item-label">
+                      <span class="settings-item-title">Peer rating</span>
+                      <span class="settings-item-desc">Rating used for move likelihoods</span>
+                    </span>
+                    <div class="eval-dropdown settings-dropdown">
                       <button id="eval-rating-btn" type="button" class="eval-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="eval-rating-list">
                         <span id="eval-rating-label"></span>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" /></svg>
@@ -90,8 +106,15 @@
                     </button>
                   </div>
                 </div>
-                <div id="moves-settings" class="eval-settings" hidden>
-                  <div class="eval-field"><span>Layout</span><div id="moves-layout" class="eval-seg" role="group" aria-label="Move layout"></div></div>
+                <div id="moves-settings" class="settings-menu section-popover" hidden>
+                  <div class="settings-header">Move list</div>
+                  <div class="settings-item">
+                    <span class="settings-item-label">
+                      <span class="settings-item-title">Layout</span>
+                      <span class="settings-item-desc">How moves and variations are shown</span>
+                    </span>
+                    <div id="moves-layout" class="eval-seg" role="group" aria-label="Move layout"></div>
+                  </div>
                 </div>
                 <div class="movies-panel-body">
                   <div id="move-list" class="move-list" aria-label="Move list"></div>

@@ -1,5 +1,5 @@
 // Layout of the move list: how moves and variations are displayed.
-import { segmentedGroup } from './ui.js';
+import { positionPopover, segmentedGroup } from './ui.js';
 
 export const MOVE_LAYOUTS = {
   inline: {
@@ -58,11 +58,15 @@ export function initMovesSettings(layout, onChange, doc = document) {
   group.setValue(layout);
 
   const setOpen = (open) => {
+    if (open) positionPopover(menu, button);
     menu.hidden = !open;
     button.setAttribute('aria-expanded', String(open));
   };
 
   button.addEventListener('click', () => setOpen(menu.hidden));
+  window.addEventListener('resize', () => {
+    if (!menu.hidden) positionPopover(menu, button);
+  });
 
   doc.addEventListener('click', (event) => {
     if (!menu.hidden && !menu.contains(event.target) && !button.contains(event.target)) {

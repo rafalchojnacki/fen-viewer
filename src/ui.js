@@ -1,5 +1,12 @@
 // Small DOM helpers shared by the side panel sections.
 
+// Places a floating popover just below its anchor button, right-aligned to it.
+export function positionPopover(menu, anchor) {
+  const rect = anchor.getBoundingClientRect();
+  menu.style.top = `${rect.bottom + 6}px`;
+  menu.style.right = `${Math.max(0, window.innerWidth - rect.right)}px`;
+}
+
 export function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;

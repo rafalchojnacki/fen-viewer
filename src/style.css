@@ -625,6 +625,12 @@ main {
   padding-right: 0;
 }
 
+.move-paren {
+  flex: none;
+  margin: 0 2px;
+  color: var(--text-dim);
+}
+
 .move-inline .move-ply {
   width: auto;
   overflow: visible;
@@ -1604,25 +1610,18 @@ main {
   height: 16px;
 }
 
-.eval-settings {
+/* Floating section settings: same look as the page settings menu. */
+.section-popover {
+  position: fixed;
+  z-index: 20;
+  /* The side panel uses a monospace font; match the page settings menu. */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Peer rating dropdown inside a settings row. */
+.settings-dropdown {
   flex: none;
-  display: grid;
-  gap: 6px;
-  padding: 8px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--text-dim) 20%, transparent);
-}
-
-.eval-settings[hidden] {
-  display: none;
-}
-
-.eval-field {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-muted);
+  width: 120px;
 }
 
 .eval-seg {
@@ -1999,8 +1998,7 @@ main {
   height: auto;
 }
 
-.analysis-section.collapsed .analysis-panel-body,
-.analysis-section.collapsed .eval-settings {
+.analysis-section.collapsed .analysis-panel-body {
   display: none;
 }
 

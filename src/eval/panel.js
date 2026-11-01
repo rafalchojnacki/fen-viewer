@@ -1,6 +1,6 @@
 import { StockfishEngine } from './stockfish.js';
 import { loadMaia, scoreMoves } from './maia.js';
-import { el, segmentedGroup } from '../ui.js';
+import { el, positionPopover, segmentedGroup } from '../ui.js';
 import { setSplitEnabled } from '../sidebar-split.js';
 import {
   applyUci,
@@ -122,6 +122,9 @@ export class EvalPanel {
     this.toggle.addEventListener('change', () => this.setEnabled(this.toggle.checked));
 
     this.settingsBtn.addEventListener('click', () => this.toggleSettingsMenu());
+    window.addEventListener('resize', () => {
+      if (!this.settingsMenu.hidden) positionPopover(this.settingsMenu, this.settingsBtn);
+    });
 
     this.ratingBtn.addEventListener('click', () => {
       if (this.ratingList.hidden) this.openRatingList();
@@ -161,6 +164,7 @@ export class EvalPanel {
 
   toggleSettingsMenu() {
     if (this.settingsMenu.hidden) {
+      positionPopover(this.settingsMenu, this.settingsBtn);
       this.settingsMenu.hidden = false;
       this.settingsBtn.setAttribute('aria-expanded', 'true');
     } else {
