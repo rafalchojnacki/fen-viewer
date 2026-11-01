@@ -1094,12 +1094,12 @@ main {
 
 .settings-widget {
   position: fixed;
-  top: 16px;
-  right: 16px;
+  bottom: 16px;
+  left: 16px;
   z-index: 10;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -1165,6 +1165,21 @@ main {
   border-left: 1px solid var(--glass-border);
   border-top: 1px solid var(--glass-border);
   transform: rotate(45deg);
+}
+
+#settings-menu::before {
+  top: auto;
+  right: auto;
+  bottom: -5px;
+  left: 12px;
+  transform: rotate(225deg);
+}
+
+#settings-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: min(560px, calc(100vw - 32px));
 }
 
 .settings-menu[hidden] {
@@ -1269,6 +1284,10 @@ main {
   border-radius: 9px;
 }
 
+.settings-theme-buttons[aria-label="Page style"] {
+  flex-wrap: nowrap;
+}
+
 .settings-theme-btn {
   padding: 5px 12px;
   font: inherit;
@@ -1297,12 +1316,18 @@ main {
 .timer-widget {
   position: fixed;
   bottom: 16px;
-  right: 16px;
+  left: 64px;
   z-index: 10;
   display: flex;
-  flex-direction: row-reverse;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-end;
   gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .settings-theme-buttons[aria-label="Page style"] {
+    flex-wrap: wrap;
+  }
 }
 
 .timer-widget button {

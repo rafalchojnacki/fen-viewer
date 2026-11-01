@@ -218,23 +218,6 @@
       </button>
       <div id="settings-menu" class="settings-menu" role="menu" hidden>
         <div class="settings-header">Settings</div>
-        <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
-          <span class="settings-item-label">
-            <span class="settings-item-title">Legal move dots</span>
-            <span class="settings-item-desc">Show destinations for the selected piece</span>
-          </span>
-          <input id="setting-show-dests" type="checkbox" checked />
-          <span class="settings-switch" aria-hidden="true"></span>
-        </label>
-        <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
-          <span class="settings-item-label">
-            <span class="settings-item-title">Side panels</span>
-            <span class="settings-item-desc">Show the side panels</span>
-          </span>
-          <input id="setting-show-panel" type="checkbox" checked />
-          <span class="settings-switch" aria-hidden="true"></span>
-        </label>
-        <div class="settings-divider" role="separator"></div>
         <div class="settings-item">
           <span class="settings-item-label">
             <span class="settings-item-title">Page style</span>
@@ -248,7 +231,6 @@
             <button type="button" class="settings-theme-btn" data-theme-value="paper" aria-pressed="false">Paper</button>
           </div>
         </div>
-        <div class="settings-divider" role="separator"></div>
         <div class="settings-item">
           <span class="settings-item-label">
             <span class="settings-item-title">Piece set</span>
@@ -259,6 +241,23 @@
             <button type="button" class="settings-theme-btn settings-piece-btn" data-piece-value="maestro" aria-pressed="false">Maestro</button>
           </div>
         </div>
+        <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
+          <span class="settings-item-label">
+            <span class="settings-item-title">Side panels</span>
+            <span class="settings-item-desc">Show the side panels</span>
+          </span>
+          <input id="setting-show-panel" type="checkbox" checked />
+          <span class="settings-switch" aria-hidden="true"></span>
+        </label>
+        <div class="settings-divider" role="separator"></div>
+        <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
+          <span class="settings-item-label">
+            <span class="settings-item-title">Legal move dots</span>
+            <span class="settings-item-desc">Show destinations for the selected piece</span>
+          </span>
+          <input id="setting-show-dests" type="checkbox" checked />
+          <span class="settings-switch" aria-hidden="true"></span>
+        </label>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>
