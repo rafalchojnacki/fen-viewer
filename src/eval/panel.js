@@ -44,6 +44,25 @@ function maiaProgressElement(status) {
   return wrap;
 }
 
+// Column labels for the evaluation rows. The Move column has no label. Widths
+// mirror the .eval-* classes used in buildLine, so the labels line up with the values.
+function columnHeader() {
+  const header = el('div', 'eval-columns');
+  header.setAttribute('aria-hidden', 'true');
+  const label = (text) => el('span', 'eval-col-label', text);
+  header.append(
+    el('span', 'eval-col eval-col-move'),
+    el('span', 'eval-col eval-col-score'),
+    el('span', 'eval-col eval-col-wdl'),
+    el('span', 'eval-col eval-col-circles'),
+  );
+  const [, score, wdl, circles] = header.children;
+  score.append(label('Score'));
+  wdl.append(label('Peer results'));
+  circles.append(label('Masters choice'));
+  return header;
+}
+
 // Determinate bar showing how much of the Stockfish node budget is searched.
 function analysisProgressElement(fraction) {
   const wrap = el('div', 'eval-progress eval-progress-analysis');
@@ -362,6 +381,7 @@ export class EvalPanel {
 
     const lines = view.lines;
     const scoredAll = view.state === 'done' ? view.scored : null;
+    if (lines.length) this.body.append(columnHeader());
     const rows = Math.max(this.settings.lines, lines.length);
     for (let index = 0; index < rows; index += 1) {
       const line = lines[index];

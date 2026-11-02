@@ -1901,6 +1901,44 @@ main {
   background: #1c1c20;
 }
 
+/* Column labels above the evaluation rows. Widths match .eval-move, .eval-score,
+   .eval-wdl-wrap and .eval-circles so the labels line up with the values. */
+/* Font size matches .eval-primary so the em-based widths are identical. */
+.eval-columns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  font-size: 14px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.eval-col-label {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.eval-col-move {
+  min-width: 4.5em;
+}
+
+.eval-col-score {
+  min-width: 4.5em;
+}
+
+.eval-col-wdl {
+  flex: none;
+  width: 96px;
+}
+
+/* Circles sit at the right edge of the row, so the label is right-aligned. */
+.eval-col-circles {
+  margin-left: auto;
+  text-align: right;
+}
+
 .eval-continuation {
   font-size: 12px;
   color: var(--text-main);
