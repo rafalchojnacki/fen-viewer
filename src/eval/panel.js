@@ -434,7 +434,6 @@ export class EvalPanel {
     const best = lines[0];
     const band = lossBand(lossForLine(best.score, line.score));
     row.style.setProperty('--eval-tint', `var(--glyph-tint-${band.tint})`);
-    row.title = `${band.label}`;
 
     const uci = line.pv[0];
     const san = uci ? uciToSan(fen, uci) : null;
