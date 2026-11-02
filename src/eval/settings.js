@@ -1,14 +1,24 @@
 export const LINE_COUNTS = [1, 2, 3, 4, 5, 6, 7];
 
+// Keys are stored in saved settings, so they stay the same when labels change.
 export const QUALITY_LEVELS = {
-  fast: { label: 'Fast', nodes: 1_000_000 },
-  standard: { label: 'Standard', nodes: 10_000_000 },
+  fast: { label: 'Surface-level', nodes: 1_000_000 },
+  standard: { label: 'Balanced', nodes: 10_000_000 },
+  deep: { label: 'Deep', nodes: 50_000_000 },
 };
 
 // Maia3 strength levels: 600 to 2600 in steps of 100.
 export const RATINGS = Array.from({ length: 21 }, (_, i) => 600 + i * 100);
 
-export const DEFAULT_SETTINGS = { lines: 3, quality: 'fast', rating: 1500 };
+// Maia3 ratings averaged for the move-probability circles. Maia3 is conditioned
+// on Lichess blitz-scale ratings, so these are blitz-scale values.
+// An array keeps the display order explicit (integer-like object keys sort first).
+export const MASTER_RANGES = [
+  { value: '2200+', label: '2200-2600', ratings: [2200, 2300, 2400, 2500, 2600] },
+  { value: '2600', label: '2600', ratings: [2600] },
+];
+
+export const DEFAULT_SETTINGS = { lines: 3, quality: 'fast', rating: 1500, master: '2200+' };
 
 const STORAGE_KEY = 'fen-viewer.eval';
 
@@ -39,5 +49,6 @@ export function normalizeSettings(value) {
     lines: LINE_COUNTS.includes(lines) ? lines : DEFAULT_SETTINGS.lines,
     quality: Object.hasOwn(QUALITY_LEVELS, source.quality) ? source.quality : DEFAULT_SETTINGS.quality,
     rating: RATINGS.includes(rating) ? rating : DEFAULT_SETTINGS.rating,
+    master: MASTER_RANGES.some((range) => range.value === source.master) ? source.master : DEFAULT_SETTINGS.master,
   };
 }

@@ -15,6 +15,7 @@ import {
 } from './format.js';
 import {
   LINE_COUNTS,
+  MASTER_RANGES,
   QUALITY_LEVELS,
   RATINGS,
   loadSettings,
@@ -105,6 +106,12 @@ export class EvalPanel {
       Object.entries(QUALITY_LEVELS).map(([key, level]) => ({ value: key, label: level.label })),
       (value) => this.updateSettings({ quality: value }),
     );
+    this.masterGroup = segmentedGroup(
+      doc.getElementById('eval-master'),
+      MASTER_RANGES.map((range) => ({ value: range.value, label: range.label })),
+      (value) => this.updateSettings({ master: value }),
+    );
+    this.masterRatings = () => MASTER_RANGES.find((range) => range.value === this.settings.master).ratings;
     this.ratingItems = RATINGS.map((rating) => {
       const item = el('li', 'eval-dd-item', String(rating));
       item.setAttribute('role', 'option');
@@ -211,6 +218,7 @@ export class EvalPanel {
   syncControls() {
     this.linesGroup.setValue(this.settings.lines);
     this.qualityGroup.setValue(this.settings.quality);
+    this.masterGroup.setValue(String(this.settings.master));
     this.ratingLabel.textContent = String(this.settings.rating);
     this.ratingItems.forEach((item) => {
       const selected = item.dataset.value === String(this.settings.rating);
@@ -228,7 +236,7 @@ export class EvalPanel {
     }
 
     this.engine ??= new StockfishEngine();
-    const { lines: count, quality, rating } = this.settings;
+    const { lines: count, quality, rating, master } = this.settings;
     this.view = { state: 'searching', fen, lines: [] };
     this.render();
 
@@ -265,7 +273,8 @@ export class EvalPanel {
         const uci = line.pv[0];
         return { uci, childFen: uci ? applyUci(fen, uci) : null };
       });
-      const scored = await scoreMoves({ fen, moves, rating });
+      const ratings = MASTER_RANGES.find((range) => range.value === master).ratings;
+      const scored = await scoreMoves({ fen, moves, rating, ratings });
       if (runId !== this.runId) return;
         this.view = { state: 'done', fen, lines: result.lines, scored };
     } catch (error) {
@@ -408,7 +417,9 @@ export class EvalPanel {
     const count = Math.min(DOTS, Math.max(1, Math.round((scored.probability / topProbability) * DOTS)));
     circles.setAttribute('role', 'img');
     circles.setAttribute('aria-label', `Probability ${count} of ${DOTS}`);
-    circles.title = `${formatPercent(scored.probability)} average over ratings 2200–2600`;
+    const ratings = this.masterRatings();
+    const range = ratings.length > 1 ? `ratings ${ratings[0]}–${ratings.at(-1)}` : `rating ${ratings[0]}`;
+    circles.title = `${formatPercent(scored.probability)} average over ${range}`;
     for (let i = 0; i < DOTS; i += 1) {
       circles.append(el('span', i < count ? 'eval-dot eval-dot-on' : 'eval-dot'));
     }

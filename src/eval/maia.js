@@ -5,9 +5,6 @@ import { swapWdl } from './format.js';
 // Cloudflare Pages' 25 MiB per-file limit.
 export const MAIA_MODEL_URL =
   'https://huggingface.co/cemoss17/maia3-onnx/resolve/main/maia3_23m.onnx';
-// Rating levels averaged for the move-probability circles.
-export const CIRCLE_RATINGS = [2200, 2300, 2400, 2500, 2600];
-
 let loading = null;
 let statusListener = null;
 
@@ -58,15 +55,16 @@ function average(values) {
 //   moves:     [{ uci, childFen }] one entry per engine line, childFen is the
 //              position after that move
 //   rating:    rating used for the peer win/draw/loss
+//   ratings:   Maia3 ratings averaged for the probabilities (see MASTER_RANGES)
 // Returns { moves, topProbability }: moves has one { probability, wdl } per
-// input move (probability averaged over CIRCLE_RATINGS, wdl from the mover's
+// input move (probability averaged over ratings, wdl from the mover's
 // point of view); topProbability is the highest averaged probability of any
 // legal move in the position.
-export async function scoreMoves({ fen, moves, rating }) {
+export async function scoreMoves({ fen, moves, rating, ratings }) {
   const instance = await loadMaia();
 
   const positions = await instance.predictBatch(
-    CIRCLE_RATINGS.map((selfElo) => ({ fen, selfElo })),
+    ratings.map((selfElo) => ({ fen, selfElo })),
     { onError: 'collect' },
   );
 
