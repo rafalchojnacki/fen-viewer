@@ -18,7 +18,7 @@ export const MASTER_RANGES = [
   { value: '2600', label: '2600', ratings: [2600] },
 ];
 
-export const DEFAULT_SETTINGS = { lines: 3, quality: 'fast', rating: 1500, master: '2200+' };
+export const DEFAULT_SETTINGS = { lines: 3, quality: 'standard', rating: 1500, master: '2600' };
 
 const STORAGE_KEY = 'fen-viewer.eval';
 

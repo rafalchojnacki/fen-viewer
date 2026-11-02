@@ -116,21 +116,21 @@
                   <div class="settings-item">
                     <span class="settings-item-label">
                       <span class="settings-item-title">Lines</span>
-                      <span class="settings-item-desc">Engine lines shown</span>
+                      <span class="settings-item-desc">The number of lines shown</span>
                     </span>
                     <div id="eval-lines" class="eval-seg" role="group" aria-label="Number of lines"></div>
                   </div>
                   <div class="settings-item">
                     <span class="settings-item-label">
-                      <span class="settings-item-title">Analysis depth</span>
-                      <span class="settings-item-desc">How hard the engine searches</span>
+                      <span class="settings-item-title">Engine analysis depth</span>
+                      <span class="settings-item-desc">How many postions are analyzed by the engine</span>
                     </span>
-                    <div id="eval-quality" class="eval-seg" role="group" aria-label="Analysis depth"></div>
+                    <div id="eval-quality" class="eval-seg" role="group" aria-label="Engine analysis depth"></div>
                   </div>
                   <div class="settings-item">
                     <span class="settings-item-label">
                       <span class="settings-item-title">Peer rating</span>
-                      <span class="settings-item-desc">Rating used for move likelihoods</span>
+                      <span class="settings-item-desc">Reference raiting for white-win/draw/black-win likelihood.<br>Helps to asses the game outcome when played by humans.</span>
                     </span>
                     <div class="eval-dropdown settings-dropdown">
                       <button id="eval-rating-btn" type="button" class="eval-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="eval-rating-list">
@@ -142,10 +142,10 @@
                   </div>
                   <div class="settings-item">
                     <span class="settings-item-label">
-                      <span class="settings-item-title">Master ratings</span>
-                      <span class="settings-item-desc">Maia3 uses Lichess blitz-scale ratings</span>
+                      <span class="settings-item-title">Master blitz raitings</span>
+		      <span class="settings-item-desc">Reference raiting for move play likelihood. Helps assess <br />for best engine moves how difficult a move is to find.</span>
                     </span>
-                    <div id="eval-master" class="eval-seg" role="group" aria-label="Master ratings"></div>
+                    <div id="eval-master" class="eval-seg" role="group" aria-label="Master blitz ratings"></div>
                   </div>
                 </div>
                 <div class="analysis-panel-body">

@@ -128,7 +128,6 @@ export class EvalPanel {
       MASTER_RANGES.map((range) => ({ value: range.value, label: range.label })),
       (value) => this.updateSettings({ master: value }),
     );
-    this.masterRatings = () => MASTER_RANGES.find((range) => range.value === this.settings.master).ratings;
     this.ratingItems = RATINGS.map((rating) => {
       const item = el('li', 'eval-dd-item', String(rating));
       item.setAttribute('role', 'option');
@@ -450,9 +449,7 @@ export class EvalPanel {
     const count = Math.min(DOTS, Math.max(1, Math.round((scored.probability / topProbability) * DOTS)));
     circles.setAttribute('role', 'img');
     circles.setAttribute('aria-label', `Probability ${count} of ${DOTS}`);
-    const ratings = this.masterRatings();
-    const range = ratings.length > 1 ? `ratings ${ratings[0]}–${ratings.at(-1)}` : `rating ${ratings[0]}`;
-    circles.title = `${formatPercent(scored.probability)} average over ${range}`;
+    circles.title = formatPercent(scored.probability);
     for (let i = 0; i < DOTS; i += 1) {
       circles.append(el('span', i < count ? 'eval-dot eval-dot-on' : 'eval-dot'));
     }
@@ -469,7 +466,7 @@ export class EvalPanel {
     const white = wdlFromWhite(scored.wdl, mover);
     const bar = el('div', 'eval-wdl');
     bar.setAttribute('role', 'img');
-    const summary = `W ${formatPercent(white.win)} · D ${formatPercent(white.draw)} · B ${formatPercent(white.loss)}`;
+    const summary = `White ${formatPercent(white.win)} · Draw ${formatPercent(white.draw)} · Black ${formatPercent(white.loss)}`;
     bar.setAttribute('aria-label', `White win ${formatPercent(white.win)}, draw ${formatPercent(white.draw)}, black win ${formatPercent(white.loss)}`);
     bar.title = summary;
     for (const [key, cls] of [
