@@ -25,9 +25,11 @@ export function parseInfoLine(line) {
   else if (kind === 'mate') score = { mate: amount };
   else return null;
   const multipv = Number(value('multipv') ?? 1);
+  const nodes = Number(value('nodes'));
   return {
     depth,
     multipv: Number.isFinite(multipv) ? multipv : 1,
+    nodes: Number.isFinite(nodes) ? nodes : null,
     score,
     pv: tokens.slice(pvIndex + 1),
   };

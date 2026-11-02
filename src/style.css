@@ -1985,6 +1985,17 @@ main {
   transition: width 0.15s linear;
 }
 
+/* Reserved height for the analysis bar: the track plus its margins. */
+.eval-progress-slot {
+  height: 4px;
+  margin: 6px 0;
+}
+
+/* Analysis progress is shown dimmer than the Maia model load bar. */
+.eval-progress-analysis {
+  opacity: 0.5;
+}
+
 /* Unknown total or preparing: sweep a short bar back and forth. */
 .eval-progress.indeterminate .eval-progress-fill {
   width: 35%;

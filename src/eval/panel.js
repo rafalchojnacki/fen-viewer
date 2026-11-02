@@ -44,6 +44,23 @@ function maiaProgressElement(status) {
   return wrap;
 }
 
+// Determinate bar showing how much of the Stockfish node budget is searched.
+function analysisProgressElement(fraction) {
+  const wrap = el('div', 'eval-progress eval-progress-analysis');
+  wrap.setAttribute('role', 'progressbar');
+  wrap.setAttribute('aria-label', 'Analysis progress');
+  wrap.setAttribute('aria-valuemin', '0');
+  wrap.setAttribute('aria-valuemax', '100');
+  const percent = Math.round(Math.min(1, Math.max(0, fraction)) * 100);
+  wrap.setAttribute('aria-valuenow', String(percent));
+  const track = el('div', 'eval-progress-track');
+  const fill = el('div', 'eval-progress-fill');
+  fill.style.width = `${percent}%`;
+  track.append(fill);
+  wrap.append(track);
+  return wrap;
+}
+
 function updateMaiaProgress(wrap, status) {
   const label = wrap.querySelector('.eval-progress-label');
   const fill = wrap.querySelector('.eval-progress-fill');
@@ -237,7 +254,7 @@ export class EvalPanel {
 
     this.engine ??= new StockfishEngine();
     const { lines: count, quality, rating, master } = this.settings;
-    this.view = { state: 'searching', fen, lines: [] };
+    this.view = { state: 'searching', fen, lines: [], progress: 0 };
     this.render();
 
     const result = await this.engine.analyze({
@@ -246,7 +263,12 @@ export class EvalPanel {
       nodes: QUALITY_LEVELS[quality].nodes,
       onUpdate: (lines) => {
         if (runId !== this.runId) return;
-        this.view = { state: 'searching', fen, lines };
+        this.view = { ...this.view, state: 'searching', fen, lines };
+        this.render();
+      },
+      onProgress: (progress) => {
+        if (runId !== this.runId) return;
+        this.view = { ...this.view, progress };
         this.render();
       },
     });
@@ -337,6 +359,8 @@ export class EvalPanel {
       this.body.append(this.maiaProgress);
     }
 
+    this.body.append(this.progressSlot(view));
+
     const lines = view.lines;
     const scoredAll = view.state === 'done' ? view.scored : null;
     const rows = Math.max(this.settings.lines, lines.length);
@@ -356,7 +380,16 @@ export class EvalPanel {
     }
   }
 
+  // Fixed-height slot for the analysis bar. It is kept in every state so the
+  // rows below do not move when the bar appears or disappears.
+  progressSlot(view) {
+    const slot = el('div', 'eval-progress-slot');
+    if (view?.state === 'searching') slot.append(analysisProgressElement(view.progress ?? 0));
+    return slot;
+  }
+
   renderPlaceholders() {
+    this.body.append(this.progressSlot(null));
     for (let index = 0; index < this.settings.lines; index += 1) {
       this.body.append(this.placeholderLine());
     }
