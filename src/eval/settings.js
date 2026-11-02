@@ -1,10 +1,11 @@
 export const LINE_COUNTS = [1, 2, 3, 4, 5, 6, 7];
 
 // Keys are stored in saved settings, so they stay the same when labels change.
+// depth is the Stockfish search depth in plies.
 export const QUALITY_LEVELS = {
-  fast: { label: 'Surface-level', nodes: 1_000_000 },
-  standard: { label: 'Balanced', nodes: 10_000_000 },
-  deep: { label: 'Deep', nodes: 50_000_000 },
+  fast: { label: 'Surface-level', depth: 12 },
+  standard: { label: 'Balanced', depth: 16 },
+  deep: { label: 'Deep', depth: 22 },
 };
 
 // Maia3 strength levels: 600 to 2600 in steps of 100.

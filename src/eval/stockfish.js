@@ -42,7 +42,7 @@ export class StockfishEngine {
       if (existing && existing.depth > info.depth) return;
       search.lines.set(info.multipv, info);
       if (!search.cancelled) {
-        if (info.nodes !== null) search.onProgress?.(Math.min(1, info.nodes / search.nodes));
+        search.onProgress?.(Math.min(1, info.depth / search.depth));
         search.onUpdate?.(sortedLines(search.lines));
       }
       return;
@@ -61,13 +61,13 @@ export class StockfishEngine {
 
   // Starts the newest pending search, or stops the running one so the pending
   // search can start after its bestmove.
-  // onProgress(fraction) receives 0..1, the share of the node budget searched so far.
-  analyze({ fen, multiPV, nodes, onUpdate, onProgress }) {
+  // onProgress(fraction) receives 0..1, the share of the target depth reached so far.
+  analyze({ fen, multiPV, depth, onUpdate, onProgress }) {
     return new Promise((resolve) => {
       const request = {
         fen,
         multiPV,
-        nodes,
+        depth,
         onUpdate,
         onProgress,
         resolve,
@@ -104,7 +104,7 @@ export class StockfishEngine {
     this.current = search;
     this.worker.postMessage(`setoption name MultiPV value ${search.multiPV}`);
     this.worker.postMessage(`position fen ${search.fen}`);
-    this.worker.postMessage(`go nodes ${search.nodes}`);
+    this.worker.postMessage(`go depth ${search.depth}`);
   }
 
   fail(message) {

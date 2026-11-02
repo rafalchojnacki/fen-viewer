@@ -259,7 +259,7 @@ export class EvalPanel {
     const result = await this.engine.analyze({
       fen,
       multiPV: count,
-      nodes: QUALITY_LEVELS[quality].nodes,
+      depth: QUALITY_LEVELS[quality].depth,
       onUpdate: (lines) => {
         if (runId !== this.runId) return;
         this.view = { ...this.view, state: 'searching', fen, lines };
