@@ -379,6 +379,10 @@ main {
   color: var(--text-main);
 }
 
+.meta-time {
+  margin-bottom: 14px;
+}
+
 .meta-date {
   margin-top: 0;
 }

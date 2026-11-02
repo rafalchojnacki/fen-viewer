@@ -1745,6 +1745,20 @@ function metaElo(value) {
   return text && /^\d+$/.test(text) ? `(${text})` : null;
 }
 
+// PGN TimeControl ("300+3") to a readable form ("5+3"). Whole minutes are shown
+// in minutes, other base times in seconds ("90s+1"). Values that do not match the
+// clock format are shown as they are, e.g. "1/86400".
+function formatTimeControl(value) {
+  const text = metaValue(value);
+  if (!text) return null;
+  const match = /^(\d+)(?:\+(\d+))?$/.exec(text);
+  if (!match) return text;
+  const [, base, increment] = match;
+  const seconds = Number(base);
+  const baseText = seconds > 0 && seconds % 60 === 0 ? `${seconds / 60}` : `${seconds}s`;
+  return increment === undefined ? baseText : `${baseText}+${increment}`;
+}
+
 // Fills the game information panel from the root metadata. Fields without a
 // value are hidden. The panel is hidden when side panels are off or when there
 // is nothing to show.
@@ -1760,6 +1774,7 @@ function renderMetaPanel() {
     'meta-black-elo': metaElo(meta.BlackElo),
     'meta-result': metaValue(meta.Result),
     'meta-date': formatMetaDate(meta.Date),
+    'meta-time': formatTimeControl(meta.TimeControl) ? `Time control: ${formatTimeControl(meta.TimeControl)}` : null,
     'meta-event': metaValue(meta.Event),
     'meta-round': metaValue(meta.Round) ? `Round ${metaValue(meta.Round)}` : null,
   };
