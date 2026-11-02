@@ -59,7 +59,7 @@ function columnHeader() {
   const [, score, wdl, circles] = header.children;
   score.append(label('Score'));
   wdl.append(label('Peer results'));
-  circles.append(label('Masters choice'));
+  circles.append(label('Masters'));
   return header;
 }
 
