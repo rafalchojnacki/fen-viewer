@@ -1093,10 +1093,7 @@ main {
 }
 
 .settings-widget {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  z-index: 10;
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -1134,6 +1131,16 @@ main {
   background: var(--accent-btn-hover, var(--accent-light));
 }
 
+/* Inside the Game actions row: same height and icon size as Import/Clear. */
+.side-actions .settings-widget > #settings-toggle {
+  padding: 7px;
+}
+
+.side-actions #settings-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
 #settings-toggle svg {
   width: 22px;
   height: 22px;
@@ -1167,18 +1174,13 @@ main {
   transform: rotate(45deg);
 }
 
-#settings-menu::before {
-  top: auto;
-  right: auto;
-  bottom: -5px;
-  left: 12px;
-  transform: rotate(225deg);
-}
-
+/* Opens below the button, aligned to its right edge; the default arrow
+   (.settings-menu::before) sits on the top edge and points at the button. */
 #settings-menu {
   position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
   width: min(560px, calc(100vw - 32px));
 }
 
@@ -1316,7 +1318,7 @@ main {
 .timer-widget {
   position: fixed;
   bottom: 16px;
-  left: 64px;
+  left: 16px;
   z-index: 10;
   display: flex;
   flex-direction: row;

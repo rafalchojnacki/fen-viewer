@@ -42,6 +42,57 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" /></svg>
                   <span>Clear</span>
                 </button>
+                <div class="settings-widget">
+                  <button id="settings-toggle" type="button" title="Settings" aria-label="Settings" aria-expanded="false" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                  </button>
+                  <div id="settings-menu" class="settings-menu" role="menu" hidden>
+                    <div class="settings-header">Settings</div>
+                    <div class="settings-item">
+                      <span class="settings-item-label">
+                        <span class="settings-item-title">Page style</span>
+                        <span class="settings-item-desc">Theme of the page and board</span>
+                      </span>
+                      <div class="settings-theme-buttons" role="group" aria-label="Page style">
+                        <button type="button" class="settings-theme-btn" data-theme-value="graphite" aria-pressed="false">Graphite</button>
+                        <button type="button" class="settings-theme-btn" data-theme-value="walnut" aria-pressed="true">Walnut</button>
+                        <button type="button" class="settings-theme-btn" data-theme-value="navy" aria-pressed="false">Navy</button>
+                        <button type="button" class="settings-theme-btn" data-theme-value="birch" aria-pressed="false">Birch</button>
+                        <button type="button" class="settings-theme-btn" data-theme-value="paper" aria-pressed="false">Paper</button>
+                      </div>
+                    </div>
+                    <div class="settings-item">
+                      <span class="settings-item-label">
+                        <span class="settings-item-title">Piece set</span>
+                        <span class="settings-item-desc">Pieces used on the board</span>
+                      </span>
+                      <div class="settings-theme-buttons" role="group" aria-label="Piece set">
+                        <button type="button" class="settings-theme-btn settings-piece-btn" data-piece-value="staunty" aria-pressed="true">Staunty</button>
+                        <button type="button" class="settings-theme-btn settings-piece-btn" data-piece-value="maestro" aria-pressed="false">Maestro</button>
+                      </div>
+                    </div>
+                    <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
+                      <span class="settings-item-label">
+                        <span class="settings-item-title">Side panels</span>
+                        <span class="settings-item-desc">Show the side panels</span>
+                      </span>
+                      <input id="setting-show-panel" type="checkbox" checked />
+                      <span class="settings-switch" aria-hidden="true"></span>
+                    </label>
+                    <div class="settings-divider" role="separator"></div>
+                    <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
+                      <span class="settings-item-label">
+                        <span class="settings-item-title">Legal move dots</span>
+                        <span class="settings-item-desc">Show destinations for the selected piece</span>
+                      </span>
+                      <input id="setting-show-dests" type="checkbox" checked />
+                      <span class="settings-switch" aria-hidden="true"></span>
+                    </label>
+                  </div>
+                </div>
               </div>
               <div class="analysis-section" id="eval-section">
                 <div class="eval-header">
@@ -207,57 +258,6 @@
             <rect x="6" y="6" width="12" height="12" rx="2" ry="2" fill="currentColor" />
           </svg>
         </button>
-      </div>
-    </div>
-    <div class="settings-widget">
-      <button id="settings-toggle" type="button" title="Settings" aria-label="Settings" aria-expanded="false" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-      </button>
-      <div id="settings-menu" class="settings-menu" role="menu" hidden>
-        <div class="settings-header">Settings</div>
-        <div class="settings-item">
-          <span class="settings-item-label">
-            <span class="settings-item-title">Page style</span>
-            <span class="settings-item-desc">Theme of the page and board</span>
-          </span>
-          <div class="settings-theme-buttons" role="group" aria-label="Page style">
-            <button type="button" class="settings-theme-btn" data-theme-value="graphite" aria-pressed="false">Graphite</button>
-            <button type="button" class="settings-theme-btn" data-theme-value="walnut" aria-pressed="true">Walnut</button>
-            <button type="button" class="settings-theme-btn" data-theme-value="navy" aria-pressed="false">Navy</button>
-            <button type="button" class="settings-theme-btn" data-theme-value="birch" aria-pressed="false">Birch</button>
-            <button type="button" class="settings-theme-btn" data-theme-value="paper" aria-pressed="false">Paper</button>
-          </div>
-        </div>
-        <div class="settings-item">
-          <span class="settings-item-label">
-            <span class="settings-item-title">Piece set</span>
-            <span class="settings-item-desc">Pieces used on the board</span>
-          </span>
-          <div class="settings-theme-buttons" role="group" aria-label="Piece set">
-            <button type="button" class="settings-theme-btn settings-piece-btn" data-piece-value="staunty" aria-pressed="true">Staunty</button>
-            <button type="button" class="settings-theme-btn settings-piece-btn" data-piece-value="maestro" aria-pressed="false">Maestro</button>
-          </div>
-        </div>
-        <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
-          <span class="settings-item-label">
-            <span class="settings-item-title">Side panels</span>
-            <span class="settings-item-desc">Show the side panels</span>
-          </span>
-          <input id="setting-show-panel" type="checkbox" checked />
-          <span class="settings-switch" aria-hidden="true"></span>
-        </label>
-        <div class="settings-divider" role="separator"></div>
-        <label class="settings-item" role="menuitemcheckbox" aria-checked="true">
-          <span class="settings-item-label">
-            <span class="settings-item-title">Legal move dots</span>
-            <span class="settings-item-desc">Show destinations for the selected piece</span>
-          </span>
-          <input id="setting-show-dests" type="checkbox" checked />
-          <span class="settings-switch" aria-hidden="true"></span>
-        </label>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>
