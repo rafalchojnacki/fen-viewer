@@ -1326,7 +1326,7 @@ main {
   z-index: 10;
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
 }
 
@@ -1340,6 +1340,8 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  height: 40px;
   padding: 8px;
   font-size: 13px;
   color: var(--text-main);
@@ -1396,8 +1398,10 @@ main {
 .timer-panel {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
+  height: 40px;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 0 8px;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
@@ -1425,6 +1429,7 @@ main {
   padding: 6px;
   width: 32px;
   height: 32px;
+  box-sizing: border-box;
 }
 
 .timer-panel button svg {
