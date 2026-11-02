@@ -1965,20 +1965,21 @@ main {
   animation: eval-shimmer 1.4s ease-in-out infinite;
 }
 
+/* Skeleton boxes take the same widths as the matching columns (.eval-move,
+   .eval-score, .eval-circles) so placeholders line up with the header labels. */
 .eval-skeleton-move {
-  width: 3.5em;
+  width: 4.5em;
   height: 14px;
 }
 
 .eval-skeleton-score {
-  width: 3.5em;
+  width: 4.5em;
   height: 14px;
 }
 
 .eval-skeleton-circles {
-  width: 70px;
+  width: 67px;
   height: 10px;
-  margin-left: auto;
 }
 
 .eval-skeleton-wdl {
