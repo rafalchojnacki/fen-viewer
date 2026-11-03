@@ -1,18 +1,19 @@
 // Layout of the move list: how moves and variations are displayed.
 import { positionPopover, segmentedGroup } from './ui.js';
 
+// Keys are stored in localStorage, so they stay as they were; only labels and order change.
 export const MOVE_LAYOUTS = {
-  inline: {
-    label: 'Inline',
-    title: 'Moves flow as text; variations in indented blocks',
-  },
   columns: {
     label: 'Columns',
     title: 'Move pairs in columns everywhere',
   },
   mixed: {
-    label: 'Mixed',
+    label: 'Inline variations',
     title: 'Columns for the main line, text for variations',
+  },
+  inline: {
+    label: 'Inline all',
+    title: 'Moves flow as text; variations in indented blocks',
   },
 };
 
