@@ -29,9 +29,9 @@ const CONTINUATION_PLIES = 6;
 
 const MIB = 1024 * 1024;
 
-// Progress bar for the Maia model load (see loadMaia in maia.js). Shows a
-// determinate fill while downloading, and an indeterminate sweep while the
-// model is being prepared or when the total size is unknown.
+// Progress bar for the Maia model download (see loadMaia in maia.js). Shown only
+// during the download phase: a determinate fill when the total size is known,
+// and an indeterminate sweep otherwise.
 function maiaProgressElement(status) {
   const wrap = el('div', 'eval-progress');
   wrap.setAttribute('role', 'progressbar');
@@ -89,14 +89,11 @@ function updateMaiaProgress(wrap, status) {
     const fraction = Math.min(1, status.loaded / status.total);
     fill.style.width = `${(fraction * 100).toFixed(1)}%`;
     wrap.setAttribute('aria-valuenow', String(Math.round(fraction * 100)));
-    label.textContent = `Downloading Maia3 model… ${(status.loaded / MIB).toFixed(1)} of ${(status.total / MIB).toFixed(1)} MB`;
+    label.textContent = `Downloading… ${(status.loaded / MIB).toFixed(1)} of ${(status.total / MIB).toFixed(1)} MB`;
   } else {
     fill.style.width = '';
     wrap.removeAttribute('aria-valuenow');
-    label.textContent =
-      status.phase === 'download'
-        ? 'Loading Maia3 model…'
-        : 'Preparing Maia3 model…';
+    label.textContent = 'Downloading…';
   }
 }
 
@@ -335,6 +332,12 @@ export class EvalPanel {
   onMaiaStatus(runId, status) {
     if (runId !== this.runId || this.view?.state !== 'scoring') return;
     this.view = { ...this.view, maia: status };
+    if (status.phase !== 'download') {
+      // Preparing: hide the bar. The render below leaves the slot out.
+      if (this.maiaProgress?.isConnected) this.maiaProgress.remove();
+      this.maiaProgress = null;
+      return;
+    }
     if (this.maiaProgress?.isConnected) {
       updateMaiaProgress(this.maiaProgress, status);
     } else {
@@ -372,7 +375,7 @@ export class EvalPanel {
       return;
     }
 
-    if (view.state === 'scoring' && view.maia) {
+    if (view.state === 'scoring' && view.maia?.phase === 'download') {
       this.maiaProgress = maiaProgressElement(view.maia);
       this.body.append(this.maiaProgress);
     }
