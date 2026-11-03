@@ -5,8 +5,6 @@ import '@fontsource/geist-mono/400.css';
 import '@fontsource/geist-mono/500.css';
 import '@fontsource/geist-mono/600.css';
 import '@fontsource/geist-mono/700.css';
-import './theme.css';
-import './style.css';
 import { evalPanel } from './eval/panel.js';
 import { initSidebarSplit } from './sidebar-split.js';
 import { initMovesSettings, loadMoveLayout } from './move-layout.js';
