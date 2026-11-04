@@ -1,4 +1,4 @@
-// Small DOM helpers shared by the side panel sections.
+// Small DOM helpers shared by the right side panel sections.
 
 // Places a floating popover just below its anchor button, right-aligned to it.
 export function positionPopover(menu, anchor) {

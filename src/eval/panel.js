@@ -97,7 +97,7 @@ function updateMaiaProgress(wrap, status) {
   }
 }
 
-// The evaluation panel lives in the side panel's analysis section.
+// The evaluation panel lives in the right side panel's analysis section.
 // Views:
 //   off        panel disabled
 //   searching  Stockfish is streaming lines (placeholders for Maia parts)

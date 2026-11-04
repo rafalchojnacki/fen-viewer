@@ -1757,8 +1757,8 @@ function formatTimeControl(value) {
   return increment === undefined ? baseText : `${baseText}+${increment}`;
 }
 
-// Fills the game information panel from the root metadata. Fields without a
-// value are hidden. The panel is hidden when side panels are off or when there
+// Fills the left side panel (game information) from the root metadata. Fields without a
+// value are hidden. The panel is hidden when the right side panel is off or when there
 // is nothing to show.
 function renderMetaPanel() {
   if (!metaPanelEl) return;

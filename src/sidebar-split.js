@@ -1,5 +1,5 @@
 // Vertical split between the Evaluation (analysis) section and the Moves section
-// of the side panel. The share of the panel height given to Evaluation is stored
+// of the right side panel. The share of the panel height given to Evaluation is stored
 // as a fraction and clamped so both sections keep a usable minimum height.
 
 const STORAGE_KEY = 'fen-viewer.analysisShare';
