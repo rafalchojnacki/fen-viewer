@@ -458,14 +458,26 @@ main {
   margin-left: auto;
 }
 
-/* Import and Reset, right-aligned just above the evaluation panel. */
+/* Import and Clear on the left, Settings on the right, above the evaluation panel. */
 .side-actions {
   position: absolute;
+  left: var(--sidebar-inset);
   right: var(--sidebar-inset);
   bottom: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 20px;
   display: flex;
+  justify-content: flex-start;
   gap: 6px;
+}
+
+.side-actions .settings-widget {
+  margin-left: auto;
+}
+
+/* Import has 12px inner padding; pull it back so its icon starts on the
+   same left edge as the "Evaluation" header. */
+.side-actions #import-btn {
+  margin-left: -12px;
 }
 
 /* Text-and-icon buttons without border or background. */
@@ -1127,10 +1139,13 @@ main {
   background: var(--accent-btn-hover, var(--accent-light));
 }
 
-/* Inside the Game actions row: same height, icon size and label style as Import/Clear. */
+/* Inside the Game actions row: same height, icon size and label style as Import/Clear.
+   No right padding; the 5px margin pulls the icon's right edge onto the
+   Evaluation gear icon's right edge (the gear icon sits 5px inside its 26px button). */
 .side-actions .settings-widget > #settings-toggle {
   gap: 6px;
-  padding: 7px 12px;
+  padding: 7px 0 7px 12px;
+  margin-right: 5px;
   font-size: 13px;
   background: none;
   border: none;
@@ -1531,7 +1546,7 @@ main {
     position: static;
     margin-bottom: 8px;
     margin-right: var(--sidebar-inset);
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
 
   .side-info-panel {
