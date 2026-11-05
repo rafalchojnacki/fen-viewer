@@ -302,12 +302,6 @@ main {
   --left-eff: 0px;
 }
 
-.board-and-panel:has(.side-info-panel[hidden]) {
-  --right-eff: 0px;
-  --left-eff: 0px;
-  left: 0;
-}
-
 .meta-panel {
   flex: none;
   align-self: flex-start;
@@ -493,10 +487,6 @@ main {
   width: 18px;
   height: 18px;
   display: block;
-}
-
-.side-info-panel[hidden] {
-  display: none;
 }
 
 .analysis-section {

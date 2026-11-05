@@ -94,7 +94,6 @@ let pendingImportChord = false;
 let pendingImportChordTimeout = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
 let showLastMove = localStorage.getItem('fen-viewer.showLastMove') !== 'false';
-let showPanel = localStorage.getItem('fen-viewer.showPanel') !== 'false';
 let currentPieces = localStorage.getItem('fen-viewer.pieces') || 'staunty';
 const STATE_KEY = 'fen-viewer.state';
 
@@ -1503,11 +1502,6 @@ document.addEventListener('keydown', (event) => {
     refresh();
     return;
   }
-  if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 's') {
-    event.preventDefault();
-    setShowPanel(!showPanel);
-    return;
-  }
   const digitIndex = digitIndexFromEvent(event);
   if (digitIndex !== null && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault();
@@ -1744,8 +1738,6 @@ const settingsToggle = document.getElementById('settings-toggle');
 const settingsMenu = document.getElementById('settings-menu');
 const showDestsInput = document.getElementById('setting-show-dests');
 const showLastMoveInput = document.getElementById('setting-show-last-move');
-const showPanelInput = document.getElementById('setting-show-panel');
-const sideInfoPanelEl = document.querySelector('.side-info-panel');
 const metaPanelEl = document.getElementById('meta-panel');
 const themeButtons = document.querySelectorAll('.settings-theme-btn[data-theme-value]');
 
@@ -1891,23 +1883,9 @@ function renderMetaPanel() {
   document.getElementById('meta-white').hidden = !white;
   document.getElementById('meta-black').hidden = !black;
   const hasData = Object.values(fields).some(Boolean);
-  metaPanelEl.hidden = !(showPanel && hasData);
+  metaPanelEl.hidden = !hasData;
 }
 
-function setShowPanel(value) {
-  showPanel = value;
-  if (showPanelInput) {
-    showPanelInput.checked = value;
-    showPanelInput.closest('.settings-item')?.setAttribute('aria-checked', String(value));
-  }
-  localStorage.setItem('fen-viewer.showPanel', String(value));
-  if (sideInfoPanelEl) {
-    sideInfoPanelEl.hidden = !value;
-  }
-  renderMetaPanel();
-  if (value) ensureActiveMoveVisible();
-  window.dispatchEvent(new Event('resize'));
-}
 
 if (showDestsInput) {
   showDestsInput.addEventListener('change', () => {
@@ -1927,11 +1905,6 @@ if (showLastMoveInput) {
   });
 }
 
-if (showPanelInput) {
-  showPanelInput.addEventListener('change', () => setShowPanel(showPanelInput.checked));
-}
-
-setShowPanel(showPanel);
 
 document.addEventListener('click', (event) => {
   if (!moveContextMenu.hidden && !moveContextMenu.contains(event.target)) {
