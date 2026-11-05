@@ -1,4 +1,4 @@
-export const LINE_COUNTS = [1, 2, 3, 4, 5, 6, 7];
+export const LINE_COUNTS = [1, 2, 3, 4, 5];
 
 // Keys are stored in saved settings, so they stay the same when labels change.
 // nodes is the Stockfish node budget for one search.
@@ -19,7 +19,7 @@ export const MASTER_RANGES = [
   { value: '2600', label: '2600', ratings: [2600] },
 ];
 
-export const DEFAULT_SETTINGS = { lines: 3, quality: 'standard', rating: 1500, master: '2600' };
+export const DEFAULT_SETTINGS = { lines: 3, quality: 'standard', rating: 1500, master: '2600', preview: false };
 
 const STORAGE_KEY = 'fen-viewer.eval';
 
@@ -51,5 +51,6 @@ export function normalizeSettings(value) {
     quality: Object.hasOwn(QUALITY_LEVELS, source.quality) ? source.quality : DEFAULT_SETTINGS.quality,
     rating: RATINGS.includes(rating) ? rating : DEFAULT_SETTINGS.rating,
     master: MASTER_RANGES.some((range) => range.value === source.master) ? source.master : DEFAULT_SETTINGS.master,
+    preview: source.preview === true,
   };
 }

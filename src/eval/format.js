@@ -120,18 +120,26 @@ export function uciToSan(fen, uci) {
 }
 
 // Converts UCI moves to a numbered SAN string, e.g. "12. Nf3 Nc6 13. O-O".
-export function uciLineToSan(fen, uciMoves, maxPlies = 10) {
+// One entry per ply of a UCI line: SAN, move number, side that moved, and the
+// FEN after the move. Stops at the first illegal move.
+export function uciLineParts(fen, uciMoves, maxPlies = 10) {
   const chess = new Chess(fen);
   const parts = [];
   for (const uci of uciMoves.slice(0, maxPlies)) {
-    const turn = chess.turn();
-    const number = chess.moveNumber();
+    const color = chess.turn();
+    const moveNumber = chess.moveNumber();
     const move = tryMove(chess, uci);
     if (!move) break;
-    if (turn === 'w') parts.push(`${number}. ${move.san}`);
-    else parts.push(move.san);
+    parts.push({ san: move.san, color, moveNumber, fen: chess.fen() });
   }
-  return parts.join(' ');
+  return parts;
+}
+
+// 8x8 grid of piece codes such as 'wK' or 'bp' (null for empty), rank 8 first.
+export function boardGrid(fen) {
+  return new Chess(fen)
+    .board()
+    .map((row) => row.map((square) => (square ? `${square.color}${square.type.toUpperCase()}` : null)));
 }
 
 export function sideToMoveOf(fen) {

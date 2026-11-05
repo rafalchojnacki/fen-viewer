@@ -9,7 +9,8 @@ import {
   lossBand,
   lossForLine,
   sideToMoveOf,
-  uciLineToSan,
+  boardGrid,
+  uciLineParts,
   uciToSan,
   wdlFromWhite,
 } from './format.js';
@@ -28,6 +29,8 @@ const DOTS = 5;
 const CONTINUATION_PLIES = 6;
 
 const MIB = 1024 * 1024;
+// Outer size of the move preview in pixels, frame included.
+const PREVIEW_SIZE = 200;
 
 // Progress bar for the Maia model download (see loadMaia in maia.js). Shown only
 // during the download phase: a determinate fill when the total size is known,
@@ -106,12 +109,18 @@ function updateMaiaProgress(wrap, status) {
 //   error      something failed
 export class EvalPanel {
   constructor(doc = document) {
+    this.doc = doc;
+    this.preview = null;
+    this.hoverFen = null;
+    // Called with a UCI line (from the current position) when a continuation move is clicked.
+    this.onPickLine = null;
     this.toggle = doc.getElementById('eval-toggle');
     this.settingsBtn = doc.getElementById('eval-settings-btn');
     this.settingsMenu = doc.getElementById('eval-settings');
     this.ratingBtn = doc.getElementById('eval-rating-btn');
     this.ratingLabel = doc.getElementById('eval-rating-label');
     this.ratingList = doc.getElementById('eval-rating-list');
+    this.previewInput = doc.getElementById('eval-preview');
     this.section = doc.getElementById('eval-section');
     this.body = doc.getElementById('eval-body');
 
@@ -159,6 +168,7 @@ export class EvalPanel {
 
   bind() {
     this.toggle.addEventListener('change', () => this.setEnabled(this.toggle.checked));
+    this.previewInput.addEventListener('change', () => this.updateSettings({ preview: this.previewInput.checked }));
 
     this.settingsBtn.addEventListener('click', () => this.toggleSettingsMenu());
     window.addEventListener('resize', () => {
@@ -244,13 +254,16 @@ export class EvalPanel {
     this.settings = normalizeSettings({ ...this.settings, ...patch });
     saveSettings(this.settings);
     this.syncControls();
-    if (this.enabled) this.run();
+    // The preview setting only affects display, so it does not restart the analysis.
+    if (this.enabled && !('preview' in patch)) this.run();
+    if (!this.settings.preview) this.hidePreview();
   }
 
   syncControls() {
     this.linesGroup.setValue(this.settings.lines);
     this.qualityGroup.setValue(this.settings.quality);
     this.masterGroup.setValue(String(this.settings.master));
+    this.previewInput.checked = this.settings.preview;
     this.ratingLabel.textContent = String(this.settings.rating);
     this.ratingItems.forEach((item) => {
       const selected = item.dataset.value === String(this.settings.rating);
@@ -400,6 +413,7 @@ export class EvalPanel {
     if (view.message && view.state === 'done') {
       this.body.append(el('p', 'eval-empty eval-error', view.message));
     }
+    this.restorePreview();
   }
 
   // Fixed-height slot for the analysis bar. It is kept in every state so the
@@ -454,9 +468,89 @@ export class EvalPanel {
     row.append(primary);
 
     const afterFirst = uci ? applyUci(fen, uci) : null;
-    const continuation = afterFirst ? uciLineToSan(afterFirst, line.pv.slice(1), CONTINUATION_PLIES) : '';
-    row.append(el('div', 'eval-continuation', continuation));
+    const parts = afterFirst ? uciLineParts(afterFirst, line.pv.slice(1), CONTINUATION_PLIES) : [];
+    row.append(this.buildContinuation(line.pv, parts));
     return row;
+  }
+
+  // Each ply is a button. Clicking one plays the line up to it in the move list;
+  // hovering or focusing it shows a preview of the position after that ply.
+  buildContinuation(pv, parts) {
+    const wrap = el('div', 'eval-continuation');
+    parts.forEach((part, index) => {
+      if (index > 0) wrap.append(' ');
+      const label = part.color === 'w' ? `${part.moveNumber}. ${part.san}` : part.san;
+      const button = el('button', 'eval-cont-move', label);
+      button.type = 'button';
+      button.dataset.fen = part.fen;
+      // pv[0] is the best move; continuation ply i is pv[i + 1].
+      button.addEventListener('click', () => this.onPickLine?.(pv.slice(0, index + 2)));
+      const show = () => {
+        this.hoverFen = part.fen;
+        this.showPreview(button, part.fen);
+      };
+      const hide = () => {
+        this.hoverFen = null;
+        this.hidePreview();
+      };
+      button.addEventListener('mouseenter', show);
+      button.addEventListener('focus', show);
+      button.addEventListener('mouseleave', hide);
+      button.addEventListener('blur', hide);
+      wrap.append(button);
+    });
+    return wrap;
+  }
+
+  // Small non-interactive board next to the hovered move, in the current board theme.
+  showPreview(anchor, fen) {
+    if (!this.settings.preview) {
+      this.hidePreview();
+      return;
+    }
+    if (!this.preview) {
+      // Same frame as the main board (.board-frame), without coordinates.
+      this.preview = el('div', 'eval-preview');
+      this.preview.setAttribute('aria-hidden', 'true');
+      this.previewBoard = el('div', 'eval-preview-board');
+      this.preview.append(this.previewBoard);
+      this.doc.body.append(this.preview);
+    }
+    const board = this.doc.querySelector('cg-board');
+    if (board) {
+      const style = getComputedStyle(board);
+      this.previewBoard.style.backgroundImage = style.backgroundImage;
+      this.previewBoard.style.backgroundColor = style.backgroundColor;
+    }
+    this.previewBoard.replaceChildren(
+      ...boardGrid(fen).flat().map((piece) => {
+        const square = el('div', 'eval-preview-sq');
+        if (piece) square.style.backgroundImage = `var(--piece-${piece})`;
+        return square;
+      }),
+    );
+    const rect = anchor.getBoundingClientRect();
+    const size = PREVIEW_SIZE;
+    const top = Math.min(Math.max(rect.top + rect.height / 2 - size / 2, 8), window.innerHeight - size - 8);
+    const left = Math.max(8, rect.left - size - 12);
+    this.preview.style.top = `${top}px`;
+    this.preview.style.left = `${left}px`;
+    this.preview.hidden = false;
+  }
+
+  hidePreview() {
+    if (this.preview) this.preview.hidden = true;
+  }
+
+  // Rows are rebuilt while the engine streams. If the hovered move is still in the
+  // list, move the preview to its new button; otherwise hide it.
+  restorePreview() {
+    if (!this.hoverFen) return;
+    const button = [...this.body.querySelectorAll('.eval-cont-move')].find(
+      (node) => node.dataset.fen === this.hoverFen,
+    );
+    if (button) this.showPreview(button, this.hoverFen);
+    else this.hidePreview();
   }
 
   // Circles are scaled against the most probable move in the position, so that

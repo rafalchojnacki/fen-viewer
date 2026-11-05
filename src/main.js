@@ -811,6 +811,30 @@ function commitMove(move, moveNumber, color) {
   refresh();
 }
 
+// Plays a UCI line from the current position. Moves already in the move list are
+// reused; the last move of the line becomes the current one.
+function playUciLine(ucis) {
+  for (const uci of ucis) {
+    game = makeGame(currentFen);
+    const moveNumber = game.moveNumber();
+    const color = game.turn();
+    let move = null;
+    try {
+      move = game.move({
+        from: uci.slice(0, 2),
+        to: uci.slice(2, 4),
+        promotion: uci.length > 4 ? uci[4] : undefined,
+      });
+    } catch {
+      move = null;
+    }
+    if (!move) break;
+    commitMove(move, moveNumber, color);
+  }
+}
+
+evalPanel.onPickLine = playUciLine;
+
 function isSideVariation(entry) {
   const parent = parentOf(entry);
   return Boolean(parent && parent.mainChildId !== entry.id);
