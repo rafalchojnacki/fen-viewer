@@ -39,7 +39,9 @@ const MOVE_GLYPH_IDS = MOVE_GLYPHS.map((glyph) => glyph.id);
 const POSITION_GLYPH_IDS = POSITION_GLYPHS.map((glyph) => glyph.id);
 
 const importBtn = document.getElementById('import-btn');
-const resetBtn = document.getElementById('reset-btn');
+const startConfirm = document.getElementById('start-confirm');
+const startCancel = document.getElementById('start-cancel');
+const newAnalysisTabs = document.querySelectorAll('.new-analysis-tab');
 const importDialog = document.getElementById('import-dialog');
 const importInput = document.getElementById('import-input');
 const importError = document.getElementById('import-error');
@@ -1161,13 +1163,53 @@ function importPgn(pgn) {
 function closeImportDialog() {
   importDialog.hidden = true;
   importError.hidden = true;
+  importBtn.setAttribute('aria-expanded', 'false');
 }
 
-function openImportDialog() {
+// Shows one tab of the New Analysis panel and hides the others.
+function selectNewAnalysisTab(name) {
+  for (const tab of newAnalysisTabs) {
+    const active = tab.dataset.tab === name;
+    tab.setAttribute('aria-selected', String(active));
+    document.getElementById(`tabpanel-${tab.dataset.tab}`).hidden = !active;
+  }
+  if (name === 'import') importInput.focus();
+  else startConfirm.focus();
+}
+
+// The tab last picked by the user in the New Analysis panel. Only tab clicks
+// save it; the Alt+G, I shortcut opens Import without changing the saved choice.
+const NEW_ANALYSIS_TAB_KEY = 'fen-viewer.newAnalysisTab';
+const NEW_ANALYSIS_TABS = ['start', 'import'];
+
+function loadNewAnalysisTab() {
+  let saved = null;
+  try {
+    saved = localStorage.getItem(NEW_ANALYSIS_TAB_KEY);
+  } catch {
+    /* ignore storage errors */
+  }
+  return NEW_ANALYSIS_TABS.includes(saved) ? saved : 'start';
+}
+
+function saveNewAnalysisTab(tab) {
+  try {
+    localStorage.setItem(NEW_ANALYSIS_TAB_KEY, tab);
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+function openNewAnalysis(tab = loadNewAnalysisTab()) {
   importInput.value = '';
   importError.hidden = true;
   importDialog.hidden = false;
-  importInput.focus();
+  importBtn.setAttribute('aria-expanded', 'true');
+  selectNewAnalysisTab(tab);
+}
+
+function openImportDialog() {
+  openNewAnalysis('import');
 }
 
 function importText() {
@@ -1188,7 +1230,6 @@ promotionOverlay.addEventListener('click', (event) => {
   }
 });
 
-importBtn.addEventListener('click', openImportDialog);
 importCancel.addEventListener('click', closeImportDialog);
 importConfirm.addEventListener('click', importText);
 importDialog.addEventListener('click', (event) => {
@@ -1208,14 +1249,33 @@ deleteConfirm.addEventListener('click', () => {
   if (action) action();
 });
 
-resetBtn.addEventListener('click', () => {
+// New Analysis panel. Future sources (online games, databases, studies) are added
+// as more tabs.
+function startNewAnalysis() {
+  // Starting over discards the current game, so confirm when there is something to lose.
+  const hasWork = moveTree.children.length > 0 || moveTree.fen !== START_FEN;
+  closeImportDialog();
+  if (!hasWork) {
+    resetGame();
+    return;
+  }
   openConfirmDialog({
-    title: 'Clear game?',
+    title: 'Start new analysis?',
     message: 'This clears the board and removes all moves.',
-    label: 'Clear',
+    label: 'Start',
     onConfirm: resetGame,
   });
-});
+}
+
+importBtn.addEventListener('click', () => openNewAnalysis(loadNewAnalysisTab()));
+for (const tab of newAnalysisTabs) {
+  tab.addEventListener('click', () => {
+    saveNewAnalysisTab(tab.dataset.tab);
+    selectNewAnalysisTab(tab.dataset.tab);
+  });
+}
+startConfirm.addEventListener('click', startNewAnalysis);
+startCancel.addEventListener('click', closeImportDialog);
 deleteDialog.addEventListener('click', (event) => {
   if (event.target === deleteDialog) closeDeleteDialog();
 });
