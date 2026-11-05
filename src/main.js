@@ -93,6 +93,7 @@ let moveLayout = loadMoveLayout();
 let pendingImportChord = false;
 let pendingImportChordTimeout = null;
 let showDests = localStorage.getItem('fen-viewer.showDests') !== 'false';
+let showLastMove = localStorage.getItem('fen-viewer.showLastMove') !== 'false';
 let showPanel = localStorage.getItem('fen-viewer.showPanel') !== 'false';
 let currentPieces = localStorage.getItem('fen-viewer.pieces') || 'staunty';
 const STATE_KEY = 'fen-viewer.state';
@@ -376,7 +377,7 @@ function refresh() {
     orientation: ori,
     turnColor: turn,
     check: game ? game.isCheck() : isCheck(currentFen),
-    lastMove: entry && entry.from ? [entry.from, entry.to] : undefined,
+    lastMove: showLastMove && entry && entry.from ? [entry.from, entry.to] : undefined,
     movable: {
       free: false,
       color: turn,
@@ -1742,6 +1743,7 @@ if (timerToggle) {
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsMenu = document.getElementById('settings-menu');
 const showDestsInput = document.getElementById('setting-show-dests');
+const showLastMoveInput = document.getElementById('setting-show-last-move');
 const showPanelInput = document.getElementById('setting-show-panel');
 const sideInfoPanelEl = document.querySelector('.side-info-panel');
 const metaPanelEl = document.getElementById('meta-panel');
@@ -1811,6 +1813,11 @@ settingsToggle.addEventListener('click', () => {
 if (showDestsInput) {
   showDestsInput.checked = showDests;
   showDestsInput.closest('.settings-item')?.setAttribute('aria-checked', String(showDests));
+}
+
+if (showLastMoveInput) {
+  showLastMoveInput.checked = showLastMove;
+  showLastMoveInput.closest('.settings-item')?.setAttribute('aria-checked', String(showLastMove));
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1907,6 +1914,15 @@ if (showDestsInput) {
     showDestsInput.closest('.settings-item')?.setAttribute('aria-checked', String(showDestsInput.checked));
     showDests = showDestsInput.checked;
     localStorage.setItem('fen-viewer.showDests', String(showDests));
+    refresh();
+  });
+}
+
+if (showLastMoveInput) {
+  showLastMoveInput.addEventListener('change', () => {
+    showLastMoveInput.closest('.settings-item')?.setAttribute('aria-checked', String(showLastMoveInput.checked));
+    showLastMove = showLastMoveInput.checked;
+    localStorage.setItem('fen-viewer.showLastMove', String(showLastMove));
     refresh();
   });
 }
