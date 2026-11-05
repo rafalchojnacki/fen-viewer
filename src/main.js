@@ -421,7 +421,22 @@ function ensureActiveMoveVisible() {
   const left = containerRect.left + margin;
   const right = containerRect.right - margin;
 
-  if (lineRect.top < top) {
+  // Rows of the main move list. Variations shown inline have no row of their own,
+  // so the second-line rule only applies to the row layout.
+  const rows = [...moveList.querySelectorAll('.move-line')];
+  const index = rows.indexOf(line);
+  const maxScroll = container.scrollHeight - container.clientHeight;
+  const atBottom = container.scrollTop >= maxScroll - 1;
+
+  if (index >= 1 && !atBottom) {
+    // Put the active line on the third visible row. The first row (the first
+    // two moves) is left to the normal visibility rule below.
+    const step = rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top;
+    const padTop = parseFloat(getComputedStyle(container).paddingTop) || 0;
+    const thirdRowTop = containerRect.top + padTop + 2 * step;
+    const next = container.scrollTop + (lineRect.top - thirdRowTop);
+    container.scrollTop = Math.min(Math.max(next, 0), maxScroll);
+  } else if (lineRect.top < top) {
     container.scrollTop -= top - lineRect.top;
   } else if (lineRect.bottom > bottom) {
     container.scrollTop += lineRect.bottom - bottom;
