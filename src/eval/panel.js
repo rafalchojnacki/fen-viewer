@@ -29,6 +29,8 @@ const DOTS = 5;
 const CONTINUATION_PLIES = 6;
 
 const MIB = 1024 * 1024;
+// Finished evaluations kept in memory, so revisiting a position is instant.
+const CACHE_SIZE = 10;
 // Outer size of the move preview in pixels, frame included.
 const PREVIEW_SIZE = 200;
 
@@ -111,6 +113,8 @@ export class EvalPanel {
   constructor(doc = document) {
     this.doc = doc;
     this.preview = null;
+    // Finished evaluations by FEN, for the current analysis settings.
+    this.cache = new Map();
     this.hoverFen = null;
     // Called with a UCI line (from the current position) when a continuation move is clicked.
     this.onPickLine = null;
@@ -250,11 +254,22 @@ export class EvalPanel {
     }
   }
 
+  // Keeps the most recent finished evaluations (CACHE_SIZE of them), oldest first.
+  remember(fen, lines, scored) {
+    this.cache.delete(fen);
+    this.cache.set(fen, { lines, scored });
+    while (this.cache.size > CACHE_SIZE) {
+      this.cache.delete(this.cache.keys().next().value);
+    }
+  }
+
   updateSettings(patch) {
     this.settings = normalizeSettings({ ...this.settings, ...patch });
     saveSettings(this.settings);
     this.syncControls();
-    // The preview setting only affects display, so it does not restart the analysis.
+    // The preview setting only affects display. Any other setting changes the
+    // analysis, so the remembered evaluations are no longer valid.
+    if (Object.keys(patch).some((key) => key !== 'preview')) this.cache.clear();
     if (this.enabled && !('preview' in patch)) this.run();
     if (!this.settings.preview) this.hidePreview();
   }
@@ -276,6 +291,18 @@ export class EvalPanel {
     const runId = ++this.runId;
     const fen = this.fen;
     if (!this.enabled || !fen) {
+      this.render();
+      return;
+    }
+
+    // A finished evaluation of this position under the current settings is reused.
+    const cached = this.cache.get(fen);
+    if (cached) {
+      // Stop any search still running for the previous position.
+      this.engine?.cancel();
+      this.cache.delete(fen);
+      this.cache.set(fen, cached);
+      this.view = { state: 'done', fen, lines: cached.lines, scored: cached.scored };
       this.render();
       return;
     }
@@ -327,6 +354,7 @@ export class EvalPanel {
       const scored = await scoreMoves({ fen, moves, rating, ratings });
       if (runId !== this.runId) return;
         this.view = { state: 'done', fen, lines: result.lines, scored };
+        this.remember(fen, result.lines, scored);
     } catch (error) {
       if (runId !== this.runId) return;
         this.view = {
@@ -455,7 +483,19 @@ export class EvalPanel {
     const uci = line.pv[0];
     const san = uci ? uciToSan(fen, uci) : null;
     const primary = el('div', 'eval-primary');
-    primary.append(el('span', 'eval-move', san ?? '—'));
+    // The outer span keeps the column width; the inner span is the clickable text.
+    const moveEl = el('span', 'eval-move');
+    const text = el('span', 'eval-move-text', san ?? '—');
+    moveEl.append(text);
+    // The first move of the line is the best move. Hovering previews the position
+    // after it, and clicking adds it to the move list.
+    const afterFirst = uci ? applyUci(fen, uci) : null;
+    if (afterFirst) {
+      this.bindPreview(text, afterFirst);
+      text.classList.add('eval-move-clickable');
+      text.addEventListener('click', () => this.onPickLine?.([uci]));
+    }
+    primary.append(moveEl);
     primary.append(el('span', 'eval-score', formatScore(line.score, sideToMoveOf(fen))));
 
     if (complete) {
@@ -467,7 +507,6 @@ export class EvalPanel {
     primary.append(this.buildCircles(scored, topProbability, complete));
     row.append(primary);
 
-    const afterFirst = uci ? applyUci(fen, uci) : null;
     const parts = afterFirst ? uciLineParts(afterFirst, line.pv.slice(1), CONTINUATION_PLIES) : [];
     row.append(this.buildContinuation(line.pv, parts));
     return row;
@@ -482,24 +521,31 @@ export class EvalPanel {
       const label = part.color === 'w' ? `${part.moveNumber}. ${part.san}` : part.san;
       const button = el('button', 'eval-cont-move', label);
       button.type = 'button';
-      button.dataset.fen = part.fen;
       // pv[0] is the best move; continuation ply i is pv[i + 1].
       button.addEventListener('click', () => this.onPickLine?.(pv.slice(0, index + 2)));
-      const show = () => {
-        this.hoverFen = part.fen;
-        this.showPreview(button, part.fen);
-      };
-      const hide = () => {
-        this.hoverFen = null;
-        this.hidePreview();
-      };
-      button.addEventListener('mouseenter', show);
-      button.addEventListener('focus', show);
-      button.addEventListener('mouseleave', hide);
-      button.addEventListener('blur', hide);
+      this.bindPreview(button, part.fen, { focus: true });
       wrap.append(button);
     });
     return wrap;
+  }
+
+  // Shows the preview for `fen` while `node` is hovered (or focused, if requested).
+  bindPreview(node, fen, { focus = false } = {}) {
+    node.dataset.fen = fen;
+    const show = () => {
+      this.hoverFen = fen;
+      this.showPreview(node, fen);
+    };
+    const hide = () => {
+      this.hoverFen = null;
+      this.hidePreview();
+    };
+    node.addEventListener('mouseenter', show);
+    node.addEventListener('mouseleave', hide);
+    if (focus) {
+      node.addEventListener('focus', show);
+      node.addEventListener('blur', hide);
+    }
   }
 
   // Small non-interactive board next to the hovered move, in the current board theme.
@@ -546,7 +592,7 @@ export class EvalPanel {
   // list, move the preview to its new button; otherwise hide it.
   restorePreview() {
     if (!this.hoverFen) return;
-    const button = [...this.body.querySelectorAll('.eval-cont-move')].find(
+    const button = [...this.body.querySelectorAll('[data-fen]')].find(
       (node) => node.dataset.fen === this.hoverFen,
     );
     if (button) this.showPreview(button, this.hoverFen);

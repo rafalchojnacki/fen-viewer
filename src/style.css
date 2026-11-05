@@ -1902,6 +1902,28 @@ main {
   min-width: 4.5em;
 }
 
+/* Hover box for the first move: sized to the move text, like .eval-cont-move.
+   The negative margin keeps the text in place. */
+.eval-move-text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.eval-move-clickable {
+  padding: 0 2px;
+  margin: 0 -2px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.eval-move-clickable:hover {
+  color: var(--accent);
+  background: var(--hover-bg);
+}
+
 .eval-score {
   min-width: 4.5em;
   color: var(--eval-tint);
