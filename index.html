@@ -1,9 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="walnut">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>64 quarks</title>
+    <!-- Runs before the stylesheets so the saved theme is applied before the first paint.
+         main.js applies and normalizes the theme again once it loads. -->
+    <script>
+      try {
+        // Same names and legacy mapping as applyTheme in main.js.
+        var savedTheme = localStorage.getItem('fen-viewer.theme');
+        var legacy = { blue: 'navy', modern: 'navy', classic: 'walnut', brown: 'walnut', wood: 'walnut', gray: 'graphite', mono: 'graphite', light: 'birch' };
+        if (legacy[savedTheme]) savedTheme = legacy[savedTheme];
+        if (['walnut', 'navy', 'graphite', 'birch', 'paper'].indexOf(savedTheme) >= 0) {
+          document.documentElement.dataset.theme = savedTheme;
+        }
+      } catch (e) {
+        /* storage unavailable: keep the default theme */
+      }
+    </script>
     <!-- Linked here, not imported from main.js, so the styles apply before the first paint. -->
     <link rel="stylesheet" href="/src/theme.css" />
     <link rel="stylesheet" href="/src/style.css" />
