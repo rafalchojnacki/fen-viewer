@@ -120,63 +120,112 @@ function databaseWdl(counts, mover) {
   return mover === 'w' ? white : swapWdl(white);
 }
 
-// Values for the two columns, one entry per line. A column comes from its
-// database when that database qualified, otherwise from Maia3 (maia may be null
-// if Maia3 failed). source is null when no value is available at all.
+// Values for the two columns, one entry per line. The source is chosen per line:
+// a line uses the database when the database has its move, otherwise Maia3's
+// value for that line. Each entry carries its own source ('lichess', 'masters'
+// or 'maia'), which decides the D/E badge. Null when no value exists at all.
 function columnValues({ fen, lines, peer, masters, maia }) {
   const mover = sideToMoveOf(fen);
+  const hasPeer = (uci) => gamesOf(peer?.moves.get(uci)) > 0;
+  const hasMasters = (uci) => gamesOf(masters?.moves.get(uci)) > 0;
+
   const peerMoves = lines.map((line, index) => {
-    if (!peer) return maia?.moves[index] ?? null;
-    const wdl = databaseWdl(peer.moves.get(line.pv[0]), mover);
-    return wdl ? { wdl } : null;
+    const uci = line.pv[0];
+    if (peer && hasPeer(uci)) {
+      const counts = peer.moves.get(uci);
+      return { source: 'lichess', wdl: databaseWdl(counts, mover), games: gamesOf(counts) };
+    }
+    const estimate = maia?.moves[index];
+    return estimate?.wdl ? { source: 'maia', wdl: estimate.wdl } : null;
   });
 
-  let mastersMoves;
-  let mastersTop;
-  if (masters) {
-    const share = (uci) => {
-      const counts = masters.moves.get(uci);
-      return counts ? (counts.white + counts.draws + counts.black) / masters.total : 0;
-    };
-    // Scaled against the most played move in the position, which is in the database list.
-    mastersTop = Math.max(0, ...[...masters.moves.keys()].map(share));
-    mastersMoves = lines.map((line) => ({ probability: share(line.pv[0]) }));
-  } else {
-    mastersMoves = lines.map((_, index) => maia?.moves[index] ?? null);
-    mastersTop = maia?.topProbability ?? null;
-  }
+  const mastersShare = (uci) => gamesOf(masters.moves.get(uci)) / masters.total;
+  const mastersMoves = lines.map((line, index) => {
+    const uci = line.pv[0];
+    if (masters && hasMasters(uci)) {
+      return { source: 'masters', probability: mastersShare(uci), games: gamesOf(masters.moves.get(uci)) };
+    }
+    const estimate = maia?.moves[index];
+    return estimate?.probability !== null && estimate?.probability !== undefined
+      ? { source: 'maia', probability: estimate.probability }
+      : null;
+  });
+
+  // Circles are scaled against the most probable move. Database shares and Maia
+  // probabilities are both shares of the position, so the top is the larger of
+  // the two lists (only lists that exist are considered).
+  const tops = [
+    masters ? Math.max(0, ...[...masters.moves.keys()].map(mastersShare)) : null,
+    maia?.topProbability ?? null,
+  ].filter((value) => value !== null);
+  const mastersTop = tops.length ? Math.max(...tops) : null;
 
   return {
-    peer: { source: peer ? 'lichess' : maia ? 'maia' : null, games: peer?.total ?? null, moves: peerMoves },
-    masters: {
-      source: masters ? 'masters' : maia ? 'maia' : null,
-      games: masters?.total ?? null,
-      moves: mastersMoves,
-      topProbability: mastersTop,
-    },
+    peer: { moves: peerMoves },
+    masters: { moves: mastersMoves, topProbability: mastersTop },
   };
 }
 
-// Fixed-width slot to the left of a value, always present so values stay in
+// Total games behind one database move (0 when the move has no games).
+function gamesOf(counts) {
+  return counts ? counts.white + counts.draws + counts.black : 0;
+}
+
+// Fixed-width slot to the right of a value, always present so values stay in
 // place. "D" marks a value from the database, "E" one estimated by Maia3 (used
 // when the database had too few games). Empty when no value exists.
+// The tooltip is a custom one (see showTip).
 function sourceSlot(source, databaseName, games = null) {
   const slot = el('span', 'eval-source-slot');
+  let lines;
   if (source === 'maia') {
     slot.textContent = 'E';
     slot.classList.add('eval-source-maia');
-    slot.title = `Estimated by Maia3: the ${databaseName} database has fewer than ${MIN_DB_GAMES} games for this position`;
+    lines = ['Estimated (not enough games)'];
   } else if (source === 'lichess' || source === 'masters') {
     slot.textContent = 'D';
     slot.classList.add('eval-source-db');
-    const count = games === null ? '' : `: ${games.toLocaleString('en-US')} games`;
-    slot.title = `From the ${databaseName} database${count}`;
+    lines = [`${games.toLocaleString('en-US')} games`];
   } else {
     return slot;
   }
   slot.setAttribute('role', 'img');
-  slot.setAttribute('aria-label', slot.title);
+  slot.setAttribute('aria-label', lines.join('. '));
+  attachTip(slot, lines);
   return slot;
+}
+
+// Hover tooltip for a node, in the custom style (see showTip). Native title
+// tooltips are not used because the browser draws them and ignores the theme.
+function attachTip(node, lines) {
+  node.addEventListener('mouseenter', () => showTip(node, lines));
+  node.addEventListener('mouseleave', hideTip);
+}
+
+// One tooltip element shared by all indicators. It sits on <body> with fixed
+// positioning, so the scrolling evaluation body cannot clip it, and it shows
+// without the browser's delay.
+let tipEl = null;
+
+function showTip(anchor, lines) {
+  if (!tipEl) {
+    tipEl = document.createElement('div');
+    tipEl.className = 'eval-tip';
+    tipEl.setAttribute('role', 'tooltip');
+    document.body.append(tipEl);
+  }
+  tipEl.replaceChildren(...lines.map((text) => el('span', 'eval-tip-line', text)));
+  tipEl.hidden = false;
+  const rect = anchor.getBoundingClientRect();
+  const { offsetWidth: width, offsetHeight: height } = tipEl;
+  const left = Math.min(Math.max(8, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 8);
+  const top = Math.max(8, rect.top - height - 6);
+  tipEl.style.left = `${left}px`;
+  tipEl.style.top = `${top}px`;
+}
+
+function hideTip() {
+  if (tipEl) tipEl.hidden = true;
 }
 
 // Placeholders use the same wrappers and widths as the final cells, so the
@@ -509,13 +558,21 @@ export class EvalPanel {
     this.view = { state: 'scoring', fen, lines: result.lines, scored: null, maia: null };
     this.render();
 
-    const { peer, masters, notes } = await this.fetchDatabases(fen, rating, this.speed, token);
+    const fetched = await this.fetchDatabases(fen, rating, this.speed, token);
+    const { notes } = fetched;
     if (runId !== this.runId) return;
 
-    // Maia3 is needed only for a column whose database did not qualify.
+    // Per line: a line takes its value from the database if the database has
+    // its move, otherwise from Maia3. Maia3 runs only when some line needs it.
+    const lineUcis = result.lines.map((line) => line.pv[0]);
+    const peer = fetched.peer;
+    const masters = fetched.masters;
+    const needPeer = !peer || lineUcis.some((uci) => !uci || gamesOf(peer.moves.get(uci)) === 0);
+    const needMasters = !masters || lineUcis.some((uci) => !uci || gamesOf(masters.moves.get(uci)) === 0);
+
     let maia = null;
     let maiaError = null;
-    if (!peer || !masters) {
+    if (needPeer || needMasters) {
       this.view = { ...this.view, maia: { phase: 'download', loaded: 0, total: 0 } };
       this.render();
       try {
@@ -525,8 +582,8 @@ export class EvalPanel {
           lines: result.lines,
           rating,
           master,
-          wantPeer: !peer,
-          wantMasters: !masters,
+          wantPeer: needPeer,
+          wantMasters: needMasters,
         });
       } catch (error) {
         maiaError = error;
@@ -536,7 +593,7 @@ export class EvalPanel {
 
     const messages = [...notes];
     if (maiaError) messages.push(`Maia3 failed: ${maiaError.message}`);
-    const scored = columnValues({ fen, lines: result.lines, peer, masters, maia });
+    const scored = columnValues({ fen, lines: result.lines, peer: fetched.peer, masters: fetched.masters, maia });
     this.view = { state: 'done', fen, lines: result.lines, scored, message: messages.join(' ') };
     // Results with a failed source are not cached, so the next visit retries them.
     if (!messages.length) this.remember(key, result.lines, scored);
@@ -592,6 +649,8 @@ export class EvalPanel {
   }
 
   render() {
+    // Rows are replaced here, so a tooltip on a removed node would never get its mouseleave.
+    hideTip();
     this.maiaProgress = null;
     this.toggle.checked = this.enabled;
     // Collapse the section to its header while evaluation is off.
@@ -814,7 +873,7 @@ export class EvalPanel {
     if (!complete) return placeholderCircles();
     const wrap = el('div', 'eval-circles-wrap');
     const circles = el('span', 'eval-circles');
-    wrap.append(circles, sourceSlot(column?.source, 'Masters', column?.games));
+    wrap.append(circles, sourceSlot(entry?.source, 'Masters', entry?.games));
     // A zero probability means the move has no games in the database.
     if (!entry || !entry.probability || !column?.topProbability) {
       circles.append(el('span', 'eval-empty-inline', '—'));
@@ -823,7 +882,7 @@ export class EvalPanel {
     const count = Math.min(DOTS, Math.max(1, Math.round((entry.probability / column.topProbability) * DOTS)));
     circles.setAttribute('role', 'img');
     circles.setAttribute('aria-label', `Probability ${count} of ${DOTS}`);
-    circles.title = formatPercent(entry.probability);
+    attachTip(circles, [formatPercent(entry.probability)]);
     for (let i = 0; i < DOTS; i += 1) {
       circles.append(el('span', i < count ? 'eval-dot eval-dot-on' : 'eval-dot'));
     }
@@ -834,7 +893,7 @@ export class EvalPanel {
   buildWdl(fen, column, entry) {
     const wrap = el('div', 'eval-wdl-wrap');
     if (!entry || !entry.wdl) {
-      wrap.append(el('div', 'eval-empty-inline', '—'), sourceSlot(column?.source, 'Lichess', column?.games));
+      wrap.append(el('div', 'eval-empty-inline', '—'), sourceSlot(entry?.source, 'Lichess', entry?.games));
       return wrap;
     }
     const mover = sideToMoveOf(fen);
@@ -843,7 +902,7 @@ export class EvalPanel {
     bar.setAttribute('role', 'img');
     const summary = `White ${formatPercent(white.win)} · Draw ${formatPercent(white.draw)} · Black ${formatPercent(white.loss)}`;
     bar.setAttribute('aria-label', `White win ${formatPercent(white.win)}, draw ${formatPercent(white.draw)}, black win ${formatPercent(white.loss)}`);
-    bar.title = summary;
+    attachTip(bar, summary.split(' · '));
     for (const [key, cls] of [
       ['win', 'eval-wdl-w'],
       ['draw', 'eval-wdl-d'],
@@ -853,7 +912,7 @@ export class EvalPanel {
       segment.style.width = formatPercent(white[key]);
       bar.append(segment);
     }
-    wrap.append(bar, sourceSlot(column?.source, 'Lichess', column?.games));
+    wrap.append(bar, sourceSlot(entry?.source, 'Lichess', entry?.games));
     return wrap;
   }
 }
