@@ -267,7 +267,25 @@ export class EvalPanel {
     });
   }
 
+  // A click fires only when mousedown and mouseup hit the same element. Rows are
+  // replaced on every engine update, so the release can land on a new node, and
+  // the click then targets the container. The move is therefore remembered on
+  // mousedown, and used when the click reaches the container.
+  bindPick() {
+    let pressed = null;
+    this.body.addEventListener('mousedown', (event) => {
+      pressed = event.target.closest?.('[data-pick]')?.dataset.pick ?? null;
+    });
+    this.body.addEventListener('click', (event) => {
+      const node = event.target.closest?.('[data-pick]');
+      const ucis = node ? node.dataset.pick : pressed;
+      pressed = null;
+      if (ucis) this.onPickLine?.(ucis.split(' '));
+    });
+  }
+
   bind() {
+    this.bindPick();
     this.toggle.addEventListener('change', () => this.setEnabled(this.toggle.checked));
     this.previewInput.addEventListener('change', () => this.updateSettings({ preview: this.previewInput.checked }));
     // The token is applied only after Check validates it (see checkToken).
@@ -681,7 +699,9 @@ export class EvalPanel {
     if (afterFirst) {
       this.bindPreview(text, afterFirst);
       text.classList.add('eval-move-clickable');
-      text.addEventListener('click', () => this.onPickLine?.([uci]));
+      // Click handling is delegated to #eval-body (see bindPick): rows are rebuilt
+      // while the engine streams, so a listener on this node could be lost.
+      text.dataset.pick = uci;
     }
     primary.append(moveEl);
     primary.append(el('span', 'eval-score', formatScore(line.score, sideToMoveOf(fen))));
@@ -710,7 +730,7 @@ export class EvalPanel {
       const button = el('button', 'eval-cont-move', label);
       button.type = 'button';
       // pv[0] is the best move; continuation ply i is pv[i + 1].
-      button.addEventListener('click', () => this.onPickLine?.(pv.slice(0, index + 2)));
+      button.dataset.pick = pv.slice(0, index + 2).join(' ');
       this.bindPreview(button, part.fen, { focus: true });
       wrap.append(button);
     });
