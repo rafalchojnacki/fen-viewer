@@ -154,6 +154,19 @@
                     <input id="eval-preview" type="checkbox" />
                     <span class="settings-switch" aria-hidden="true"></span>
                   </label>
+                  <div class="settings-item">
+                    <span class="settings-item-label">
+                      <span class="settings-item-title">Lichess token</span>
+                      <span class="settings-item-desc">Needed for database data (peer and masters). Without it, only Maia3 is used. <br /><a href="https://lichess.org/account/oauth/token" target="_blank" rel="noopener noreferrer">Get your token here</a></span>
+                    </span>
+                    <div class="eval-token-control">
+                      <div class="eval-token-row">
+                        <input id="eval-token" class="eval-token-input" type="password" autocomplete="off" spellcheck="false" aria-label="Lichess API token" />
+                        <button id="eval-token-check" type="button" class="eval-token-check">Apply</button>
+                      </div>
+                      <span id="eval-token-status" class="eval-token-status" role="status" aria-live="polite"></span>
+                    </div>
+                  </div>
                 </div>
                 <div class="analysis-panel-body">
                   <div id="eval-body" class="eval-body"></div>

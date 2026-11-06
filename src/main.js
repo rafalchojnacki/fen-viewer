@@ -393,7 +393,7 @@ function refresh() {
   renderMoveList();
   renderMoveSelector();
   ensureActiveMoveVisible();
-  evalPanel.setFen(currentFen);
+  evalPanel.setFen(currentFen, moveTree?.metadata?.TimeControl ?? null);
   renderMetaPanel();
   saveState();
 }

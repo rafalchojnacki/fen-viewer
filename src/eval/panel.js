@@ -1,5 +1,12 @@
 import { StockfishEngine } from './stockfish.js';
 import { loadMaia, scoreMoves } from './maia.js';
+import {
+  MIN_DB_GAMES,
+  fetchMastersDatabase,
+  fetchPeerDatabase,
+  gameSpeed,
+  validateLichessToken,
+} from './lichess.js';
 import { el, positionPopover, segmentedGroup } from '../ui.js';
 import { setSplitEnabled } from '../sidebar-split.js';
 import {
@@ -10,6 +17,7 @@ import {
   lossForLine,
   sideToMoveOf,
   boardGrid,
+  swapWdl,
   uciLineParts,
   uciToSan,
   wdlFromWhite,
@@ -102,6 +110,90 @@ function updateMaiaProgress(wrap, status) {
   }
 }
 
+// Peer results from a database move's counts, in the mover's point of view
+// (buildWdl converts it to White's). Null when the move has no games.
+function databaseWdl(counts, mover) {
+  if (!counts) return null;
+  const total = counts.white + counts.draws + counts.black;
+  if (!total) return null;
+  const white = { win: counts.white / total, draw: counts.draws / total, loss: counts.black / total };
+  return mover === 'w' ? white : swapWdl(white);
+}
+
+// Values for the two columns, one entry per line. A column comes from its
+// database when that database qualified, otherwise from Maia3 (maia may be null
+// if Maia3 failed). source is null when no value is available at all.
+function columnValues({ fen, lines, peer, masters, maia }) {
+  const mover = sideToMoveOf(fen);
+  const peerMoves = lines.map((line, index) => {
+    if (!peer) return maia?.moves[index] ?? null;
+    const wdl = databaseWdl(peer.moves.get(line.pv[0]), mover);
+    return wdl ? { wdl } : null;
+  });
+
+  let mastersMoves;
+  let mastersTop;
+  if (masters) {
+    const share = (uci) => {
+      const counts = masters.moves.get(uci);
+      return counts ? (counts.white + counts.draws + counts.black) / masters.total : 0;
+    };
+    // Scaled against the most played move in the position, which is in the database list.
+    mastersTop = Math.max(0, ...[...masters.moves.keys()].map(share));
+    mastersMoves = lines.map((line) => ({ probability: share(line.pv[0]) }));
+  } else {
+    mastersMoves = lines.map((_, index) => maia?.moves[index] ?? null);
+    mastersTop = maia?.topProbability ?? null;
+  }
+
+  return {
+    peer: { source: peer ? 'lichess' : maia ? 'maia' : null, games: peer?.total ?? null, moves: peerMoves },
+    masters: {
+      source: masters ? 'masters' : maia ? 'maia' : null,
+      games: masters?.total ?? null,
+      moves: mastersMoves,
+      topProbability: mastersTop,
+    },
+  };
+}
+
+// Fixed-width slot to the left of a value, always present so values stay in
+// place. "D" marks a value from the database, "E" one estimated by Maia3 (used
+// when the database had too few games). Empty when no value exists.
+function sourceSlot(source, databaseName, games = null) {
+  const slot = el('span', 'eval-source-slot');
+  if (source === 'maia') {
+    slot.textContent = 'E';
+    slot.classList.add('eval-source-maia');
+    slot.title = `Estimated by Maia3: the ${databaseName} database has fewer than ${MIN_DB_GAMES} games for this position`;
+  } else if (source === 'lichess' || source === 'masters') {
+    slot.textContent = 'D';
+    slot.classList.add('eval-source-db');
+    const count = games === null ? '' : `: ${games.toLocaleString('en-US')} games`;
+    slot.title = `From the ${databaseName} database${count}`;
+  } else {
+    return slot;
+  }
+  slot.setAttribute('role', 'img');
+  slot.setAttribute('aria-label', slot.title);
+  return slot;
+}
+
+// Placeholders use the same wrappers and widths as the final cells, so the
+// skeleton sits exactly where the value will appear. The empty slot keeps the
+// space that the D/E badge takes up.
+function placeholderWdl() {
+  const wrap = el('div', 'eval-wdl-wrap');
+  wrap.append(el('span', 'eval-skeleton eval-skeleton-wdl'), el('span', 'eval-source-slot'));
+  return wrap;
+}
+
+function placeholderCircles() {
+  const wrap = el('div', 'eval-circles-wrap');
+  wrap.append(el('span', 'eval-skeleton eval-skeleton-circles'), el('span', 'eval-source-slot'));
+  return wrap;
+}
+
 // The evaluation panel lives in the right side panel's analysis section.
 // Views:
 //   off        panel disabled
@@ -125,12 +217,17 @@ export class EvalPanel {
     this.ratingLabel = doc.getElementById('eval-rating-label');
     this.ratingList = doc.getElementById('eval-rating-list');
     this.previewInput = doc.getElementById('eval-preview');
+    this.tokenInput = doc.getElementById('eval-token');
+    this.tokenCheck = doc.getElementById('eval-token-check');
+    this.tokenStatus = doc.getElementById('eval-token-status');
     this.section = doc.getElementById('eval-section');
     this.body = doc.getElementById('eval-body');
 
     this.settings = loadSettings();
     this.enabled = false;
     this.fen = null;
+    // Lichess speed of the open game (see setFen).
+    this.speed = gameSpeed(null);
     this.engine = null;
     this.runId = 0;
     this.view = null;
@@ -173,6 +270,15 @@ export class EvalPanel {
   bind() {
     this.toggle.addEventListener('change', () => this.setEnabled(this.toggle.checked));
     this.previewInput.addEventListener('change', () => this.updateSettings({ preview: this.previewInput.checked }));
+    // The token is applied only after Check validates it (see checkToken).
+    this.tokenCheck.addEventListener('click', () => this.checkToken());
+    this.tokenInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        this.checkToken();
+      }
+    });
+    this.tokenInput.addEventListener('input', () => this.setTokenStatus(null));
 
     this.settingsBtn.addEventListener('click', () => this.toggleSettingsMenu());
     window.addEventListener('resize', () => {
@@ -230,10 +336,14 @@ export class EvalPanel {
     this.settingsBtn.setAttribute('aria-expanded', 'false');
   }
 
-  // Called from the main board refresh; a no-op when the position did not change.
-  setFen(fen) {
-    if (fen === this.fen) return;
+  // Called from the main board refresh; a no-op when neither the position nor the
+  // game's time control changed. timeControl is the PGN TimeControl value of the
+  // open game (or null if unknown); it selects the Lichess speed for the peer data.
+  setFen(fen, timeControl = null) {
+    const speed = gameSpeed(timeControl);
+    if (fen === this.fen && speed === this.speed) return;
     this.fen = fen;
+    this.speed = speed;
     if (this.enabled) this.run();
   }
 
@@ -254,13 +364,47 @@ export class EvalPanel {
     }
   }
 
+  // The peer data depends on the game's speed, so the speed is part of the key.
+  cacheKey(fen) {
+    return `${this.speed}|${fen}`;
+  }
+
   // Keeps the most recent finished evaluations (CACHE_SIZE of them), oldest first.
-  remember(fen, lines, scored) {
-    this.cache.delete(fen);
-    this.cache.set(fen, { lines, scored });
+  remember(key, lines, scored) {
+    this.cache.delete(key);
+    this.cache.set(key, { lines, scored });
     while (this.cache.size > CACHE_SIZE) {
       this.cache.delete(this.cache.keys().next().value);
     }
+  }
+
+  // Validates the typed token with Lichess and applies it only if it is accepted.
+  // An empty field removes the token, which needs no check.
+  async checkToken() {
+    const token = this.tokenInput.value.trim();
+    if (!token) {
+      this.setTokenStatus(null);
+      this.updateSettings({ token: '' });
+      return;
+    }
+    this.tokenCheck.disabled = true;
+    this.setTokenStatus('pending', 'Checking…');
+    try {
+      await validateLichessToken(token);
+    } catch (error) {
+      this.setTokenStatus('error', error.message);
+      return;
+    } finally {
+      this.tokenCheck.disabled = false;
+    }
+    this.setTokenStatus('ok', 'Token accepted');
+    this.updateSettings({ token });
+  }
+
+  // kind: 'pending' | 'ok' | 'error' | null (no message).
+  setTokenStatus(kind, message = '') {
+    this.tokenStatus.textContent = message;
+    this.tokenStatus.dataset.kind = kind ?? '';
   }
 
   updateSettings(patch) {
@@ -279,6 +423,8 @@ export class EvalPanel {
     this.qualityGroup.setValue(this.settings.quality);
     this.masterGroup.setValue(String(this.settings.master));
     this.previewInput.checked = this.settings.preview;
+    this.tokenInput.value = this.settings.token;
+    this.tokenInput.placeholder = this.settings.token ? '' : 'Not set';
     this.ratingLabel.textContent = String(this.settings.rating);
     this.ratingItems.forEach((item) => {
       const selected = item.dataset.value === String(this.settings.rating);
@@ -296,19 +442,20 @@ export class EvalPanel {
     }
 
     // A finished evaluation of this position under the current settings is reused.
-    const cached = this.cache.get(fen);
+    const key = this.cacheKey(fen);
+    const cached = this.cache.get(key);
     if (cached) {
       // Stop any search still running for the previous position.
       this.engine?.cancel();
-      this.cache.delete(fen);
-      this.cache.set(fen, cached);
+      this.cache.delete(key);
+      this.cache.set(key, cached);
       this.view = { state: 'done', fen, lines: cached.lines, scored: cached.scored };
       this.render();
       return;
     }
 
     this.engine ??= new StockfishEngine();
-    const { lines: count, quality, rating, master } = this.settings;
+    const { lines: count, quality, rating, master, token } = this.settings;
     this.view = { state: 'searching', fen, lines: [], progress: 0 };
     this.render();
 
@@ -341,31 +488,71 @@ export class EvalPanel {
       return;
     }
 
-    this.view = { state: 'scoring', fen, lines: result.lines, scored: null, maia: { phase: 'download', loaded: 0, total: 0 } };
+    this.view = { state: 'scoring', fen, lines: result.lines, scored: null, maia: null };
     this.render();
 
-    try {
-      await loadMaia((status) => this.onMaiaStatus(runId, status));
-      const moves = result.lines.map((line) => {
-        const uci = line.pv[0];
-        return { uci, childFen: uci ? applyUci(fen, uci) : null };
-      });
-      const ratings = MASTER_RANGES.find((range) => range.value === master).ratings;
-      const scored = await scoreMoves({ fen, moves, rating, ratings });
+    const { peer, masters, notes } = await this.fetchDatabases(fen, rating, this.speed, token);
+    if (runId !== this.runId) return;
+
+    // Maia3 is needed only for a column whose database did not qualify.
+    let maia = null;
+    let maiaError = null;
+    if (!peer || !masters) {
+      this.view = { ...this.view, maia: { phase: 'download', loaded: 0, total: 0 } };
+      this.render();
+      try {
+        maia = await this.scoreWithMaia({
+          runId,
+          fen,
+          lines: result.lines,
+          rating,
+          master,
+          wantPeer: !peer,
+          wantMasters: !masters,
+        });
+      } catch (error) {
+        maiaError = error;
+      }
       if (runId !== this.runId) return;
-        this.view = { state: 'done', fen, lines: result.lines, scored };
-        this.remember(fen, result.lines, scored);
-    } catch (error) {
-      if (runId !== this.runId) return;
-        this.view = {
-        state: 'done',
-        fen,
-        lines: result.lines,
-        scored: null,
-        message: `Maia3 failed: ${error.message}`,
-      };
     }
+
+    const messages = [...notes];
+    if (maiaError) messages.push(`Maia3 failed: ${maiaError.message}`);
+    const scored = columnValues({ fen, lines: result.lines, peer, masters, maia });
+    this.view = { state: 'done', fen, lines: result.lines, scored, message: messages.join(' ') };
+    // Results with a failed source are not cached, so the next visit retries them.
+    if (!messages.length) this.remember(key, result.lines, scored);
     this.render();
+  }
+
+  // Queries both Lichess databases for the position. A database counts only if
+  // it has at least MIN_DB_GAMES games there. A failed query is reported in notes.
+  // Without a token the explorer is not queried at all, so both columns use Maia3.
+  async fetchDatabases(fen, rating, speed, token) {
+    const notes = [];
+    if (!token) return { peer: null, masters: null, notes };
+    const query = async (name, request) => {
+      try {
+        const db = await request();
+        return db.total >= MIN_DB_GAMES ? db : null;
+      } catch (error) {
+        notes.push(`${name} database unavailable: ${error.message}.`);
+        return null;
+      }
+    };
+    const peer = await query('Lichess', () => fetchPeerDatabase({ fen, rating, speed, token }));
+    const masters = await query('Masters', () => fetchMastersDatabase({ fen, token }));
+    return { peer, masters, notes };
+  }
+
+  async scoreWithMaia({ runId, fen, lines, rating, master, wantPeer, wantMasters }) {
+    await loadMaia((status) => this.onMaiaStatus(runId, status));
+    const moves = lines.map((line) => {
+      const uci = line.pv[0];
+      return { uci, childFen: uci ? applyUci(fen, uci) : null };
+    });
+    const ratings = MASTER_RANGES.find((range) => range.value === master).ratings;
+    return scoreMoves({ fen, moves, rating, ratings, wdl: wantPeer, probabilities: wantMasters });
   }
 
   // Called by loadMaia while the model downloads or prepares. Updates the
@@ -434,7 +621,7 @@ export class EvalPanel {
         continue;
       }
       this.body.append(
-        this.buildLine(view.fen, lines, index, scoredAll?.moves[index] ?? null, scoredAll?.topProbability ?? null, view.state === 'done'),
+        this.buildLine(view.fen, lines, index, scoredAll, view.state === 'done'),
       );
     }
 
@@ -466,14 +653,15 @@ export class EvalPanel {
     primary.append(
       el('span', 'eval-skeleton eval-skeleton-move'),
       el('span', 'eval-skeleton eval-skeleton-score'),
-      el('span', 'eval-skeleton eval-skeleton-wdl'),
-      el('span', 'eval-skeleton eval-skeleton-circles'),
+      placeholderWdl(),
+      placeholderCircles(),
     );
     row.append(primary, el('div', 'eval-skeleton eval-skeleton-cont'));
     return row;
   }
 
-  buildLine(fen, lines, index, scored, topProbability, complete) {
+  // scored holds the two column values (see columnValues), or null while searching.
+  buildLine(fen, lines, index, scored, complete) {
     const line = lines[index];
     const row = el('div', 'eval-line');
     const best = lines[0];
@@ -499,12 +687,12 @@ export class EvalPanel {
     primary.append(el('span', 'eval-score', formatScore(line.score, sideToMoveOf(fen))));
 
     if (complete) {
-      primary.append(this.buildWdl(fen, scored));
+      primary.append(this.buildWdl(fen, scored.peer, scored.peer.moves[index]));
     } else {
-      primary.append(el('span', 'eval-skeleton eval-skeleton-wdl'));
+      primary.append(placeholderWdl());
     }
 
-    primary.append(this.buildCircles(scored, topProbability, complete));
+    primary.append(this.buildCircles(scored?.masters, scored?.masters.moves[index], complete));
     row.append(primary);
 
     const parts = afterFirst ? uciLineParts(afterFirst, line.pv.slice(1), CONTINUATION_PLIES) : [];
@@ -601,31 +789,36 @@ export class EvalPanel {
 
   // Circles are scaled against the most probable move in the position, so that
   // move always shows all DOTS filled.
-  buildCircles(scored, topProbability, complete) {
-    if (!complete) return el('span', 'eval-skeleton eval-skeleton-circles');
+  // column is the Masters column value ({ source, topProbability }); entry is this line's value.
+  buildCircles(column, entry, complete) {
+    if (!complete) return placeholderCircles();
+    const wrap = el('div', 'eval-circles-wrap');
     const circles = el('span', 'eval-circles');
-    if (!scored || scored.probability === null || !topProbability) {
+    wrap.append(circles, sourceSlot(column?.source, 'Masters', column?.games));
+    // A zero probability means the move has no games in the database.
+    if (!entry || !entry.probability || !column?.topProbability) {
       circles.append(el('span', 'eval-empty-inline', '—'));
-      return circles;
+      return wrap;
     }
-    const count = Math.min(DOTS, Math.max(1, Math.round((scored.probability / topProbability) * DOTS)));
+    const count = Math.min(DOTS, Math.max(1, Math.round((entry.probability / column.topProbability) * DOTS)));
     circles.setAttribute('role', 'img');
     circles.setAttribute('aria-label', `Probability ${count} of ${DOTS}`);
-    circles.title = formatPercent(scored.probability);
+    circles.title = formatPercent(entry.probability);
     for (let i = 0; i < DOTS; i += 1) {
       circles.append(el('span', i < count ? 'eval-dot eval-dot-on' : 'eval-dot'));
     }
-    return circles;
+    return wrap;
   }
 
-  buildWdl(fen, scored) {
+  // column is the Peer results column value ({ source, moves }); entry is this line's value.
+  buildWdl(fen, column, entry) {
     const wrap = el('div', 'eval-wdl-wrap');
-    if (!scored || !scored.wdl) {
-      wrap.append(el('div', 'eval-empty-inline', '—'));
+    if (!entry || !entry.wdl) {
+      wrap.append(el('div', 'eval-empty-inline', '—'), sourceSlot(column?.source, 'Lichess', column?.games));
       return wrap;
     }
     const mover = sideToMoveOf(fen);
-    const white = wdlFromWhite(scored.wdl, mover);
+    const white = wdlFromWhite(entry.wdl, mover);
     const bar = el('div', 'eval-wdl');
     bar.setAttribute('role', 'img');
     const summary = `White ${formatPercent(white.win)} · Draw ${formatPercent(white.draw)} · Black ${formatPercent(white.loss)}`;
@@ -640,7 +833,7 @@ export class EvalPanel {
       segment.style.width = formatPercent(white[key]);
       bar.append(segment);
     }
-    wrap.append(bar);
+    wrap.append(bar, sourceSlot(column?.source, 'Lichess', column?.games));
     return wrap;
   }
 }

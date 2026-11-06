@@ -19,7 +19,8 @@ export const MASTER_RANGES = [
   { value: '2600', label: '2600', ratings: [2600] },
 ];
 
-export const DEFAULT_SETTINGS = { lines: 3, quality: 'standard', rating: 1500, master: '2600', preview: false };
+// token is an optional Lichess API token. Empty means anonymous access.
+export const DEFAULT_SETTINGS = { lines: 3, quality: 'standard', rating: 1500, master: '2600', preview: false, token: '' };
 
 const STORAGE_KEY = 'fen-viewer.eval';
 
@@ -52,5 +53,6 @@ export function normalizeSettings(value) {
     rating: RATINGS.includes(rating) ? rating : DEFAULT_SETTINGS.rating,
     master: MASTER_RANGES.some((range) => range.value === source.master) ? source.master : DEFAULT_SETTINGS.master,
     preview: source.preview === true,
+    token: typeof source.token === 'string' ? source.token.trim() : DEFAULT_SETTINGS.token,
   };
 }

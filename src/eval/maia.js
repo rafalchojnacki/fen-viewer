@@ -56,22 +56,26 @@ function average(values) {
 //              position after that move
 //   rating:    rating used for the peer win/draw/loss
 //   ratings:   Maia3 ratings averaged for the probabilities (see MASTER_RANGES)
+//   probabilities, wdl: which values to compute. Skipping one saves inference
+//              when that column is taken from a database instead.
 // Returns { moves, topProbability }: moves has one { probability, wdl } per
 // input move (probability averaged over ratings, wdl from the mover's
 // point of view); topProbability is the highest averaged probability of any
-// legal move in the position.
-export async function scoreMoves({ fen, moves, rating, ratings }) {
+// legal move in the position. Values that were not requested are null.
+export async function scoreMoves({ fen, moves, rating, ratings, probabilities = true, wdl = true }) {
   const instance = await loadMaia();
 
-  const positions = await instance.predictBatch(
-    ratings.map((selfElo) => ({ fen, selfElo })),
-    { onError: 'collect' },
-  );
+  const positions = probabilities
+    ? await instance.predictBatch(
+        ratings.map((selfElo) => ({ fen, selfElo })),
+        { onError: 'collect' },
+      )
+    : [];
 
   const childInputs = [];
   const childIndex = [];
   moves.forEach((move, index) => {
-    if (!move.childFen || isGameOver(move.childFen)) return;
+    if (!wdl || !move.childFen || isGameOver(move.childFen)) return;
     childInputs.push({ fen: move.childFen, selfElo: rating, oppoElo: rating });
     childIndex.push(index);
   });
