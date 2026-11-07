@@ -102,11 +102,11 @@ function updateMaiaProgress(wrap, status) {
     const fraction = Math.min(1, status.loaded / status.total);
     fill.style.width = `${(fraction * 100).toFixed(1)}%`;
     wrap.setAttribute('aria-valuenow', String(Math.round(fraction * 100)));
-    label.textContent = `Downloading… ${(status.loaded / MIB).toFixed(1)} of ${(status.total / MIB).toFixed(1)} MB`;
+    label.textContent = `Downloading evaluation modes… ${(status.loaded / MIB).toFixed(1)} of ${(status.total / MIB).toFixed(1)} MB`;
   } else {
     fill.style.width = '';
     wrap.removeAttribute('aria-valuenow');
-    label.textContent = 'Downloading…';
+    label.textContent = 'Downloading evaluation modes…';
   }
 }
 
@@ -175,13 +175,14 @@ function gamesOf(counts) {
 // place. "D" marks a value from the database, "E" one estimated by Maia3 (used
 // when the database had too few games). Empty when no value exists.
 // The tooltip is a custom one (see showTip).
-function sourceSlot(source, databaseName, games = null) {
+function sourceSlot(source, databaseName, games = null, hasToken = true) {
   const slot = el('span', 'eval-source-slot');
   let lines;
   if (source === 'maia') {
     slot.textContent = 'E';
     slot.classList.add('eval-source-maia');
-    lines = ['Estimated (not enough games)'];
+    // Without a token the database is never queried, so say that instead.
+    lines = [hasToken ? 'Estimated (not enough games in the database)' : 'Estimated (Lichess token is not set in Settings)'];
   } else if (source === 'lichess' || source === 'masters') {
     slot.textContent = 'D';
     slot.classList.add('eval-source-db');
@@ -871,9 +872,10 @@ export class EvalPanel {
   // column is the Masters column value ({ source, topProbability }); entry is this line's value.
   buildCircles(column, entry, complete) {
     if (!complete) return placeholderCircles();
+    const hasToken = Boolean(this.settings.token);
     const wrap = el('div', 'eval-circles-wrap');
     const circles = el('span', 'eval-circles');
-    wrap.append(circles, sourceSlot(entry?.source, 'Masters', entry?.games));
+    wrap.append(circles, sourceSlot(entry?.source, 'Masters', entry?.games, hasToken));
     // A zero probability means the move has no games in the database.
     if (!entry || !entry.probability || !column?.topProbability) {
       circles.append(el('span', 'eval-empty-inline', '—'));
@@ -892,8 +894,9 @@ export class EvalPanel {
   // column is the Peer results column value ({ source, moves }); entry is this line's value.
   buildWdl(fen, column, entry) {
     const wrap = el('div', 'eval-wdl-wrap');
+    const hasToken = Boolean(this.settings.token);
     if (!entry || !entry.wdl) {
-      wrap.append(el('div', 'eval-empty-inline', '—'), sourceSlot(entry?.source, 'Lichess', entry?.games));
+      wrap.append(el('div', 'eval-empty-inline', '—'), sourceSlot(entry?.source, 'Lichess', entry?.games, hasToken));
       return wrap;
     }
     const mover = sideToMoveOf(fen);
@@ -912,7 +915,7 @@ export class EvalPanel {
       segment.style.width = formatPercent(white[key]);
       bar.append(segment);
     }
-    wrap.append(bar, sourceSlot(entry?.source, 'Lichess', entry?.games));
+    wrap.append(bar, sourceSlot(entry?.source, 'Lichess', entry?.games, hasToken));
     return wrap;
   }
 }
